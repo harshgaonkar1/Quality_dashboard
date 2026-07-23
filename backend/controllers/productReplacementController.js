@@ -16,7 +16,8 @@ const { success, error } = require('../utils/responseHandler');
  */
 async function getDashboard(req, res, next) {
   try {
-    const summary = await productReplacementService.getDashboardSummary();
+    const { typeOfDamage = '' } = req.query;
+    const summary = await productReplacementService.getDashboardSummary({ typeOfDamage });
     return success(res, summary, 'Dashboard summary fetched successfully');
   } catch (err) {
     next(err);
@@ -27,6 +28,7 @@ async function getDashboard(req, res, next) {
  * GET /api/product/details
  * Query params:
  *   ageingCategory  - optional key (e.g. '0-3-months') to scope results to one card
+ *   typeOfDamage    - optional damage type ('Functional' | 'Transit' | 'ALL')
  *   page            - page number (default 1)
  *   pageSize        - rows per page (default 25)
  *   search          - free-text search across complaint number/model/serial
@@ -38,6 +40,7 @@ async function getDetails(req, res, next) {
   try {
     const {
       ageingCategory = null,
+      typeOfDamage = '',
       page = 1,
       pageSize = 25,
       search = '',
@@ -47,12 +50,13 @@ async function getDetails(req, res, next) {
     } = req.query;
 
     if (exportFlag === 'csv') {
-      const rows = await productReplacementService.getDetailsForExport({ ageingCategory, search });
+      const rows = await productReplacementService.getDetailsForExport({ ageingCategory, search, typeOfDamage });
       return success(res, { rows }, 'Export data fetched successfully');
     }
 
     const result = await productReplacementService.getDashboardDetails({
       ageingCategory,
+      typeOfDamage,
       page: Number(page),
       pageSize: Number(pageSize),
       search,

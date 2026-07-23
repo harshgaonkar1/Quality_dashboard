@@ -57,7 +57,7 @@ export default function DataTable({
             ) : (
               rows.map((row, idx) => (
                 <tr
-                  key={row.complaint_number || idx}
+                  key={row.serial_number || row.complaint_number || idx}
                   className="border-b border-mist-200 last:border-0 hover:bg-mist-100/60 transition-colors"
                 >
                   {columns.map((col) => (

@@ -8,8 +8,8 @@
 import api from './api';
 
 /** Fetches the ageing-bucket summary cards. */
-export function fetchDashboardSummary() {
-  return api.get('/product/dashboard');
+export function fetchDashboardSummary(params = {}) {
+  return api.get('/product/dashboard', { params });
 }
 
 /**

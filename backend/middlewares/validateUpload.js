@@ -19,6 +19,10 @@
 
 const REQUIRED_COLUMN_GROUPS = [
   {
+    name: 'Serial Number',
+    aliases: ['Serial Number', 'serial number', 'Serial No', 'Serial_Number', 'SerialNo', 'SERIAL NUMBER'],
+  },
+  {
     name: 'ZMAC ID / Complaint Number',
     aliases: ['ZMAC ID', 'ZMAC_ID', 'ZMACID', 'Complaint Number', 'Complaint No', 'Complaint'],
   },
@@ -66,95 +70,20 @@ function getFieldValue(row, aliases) {
  * Returns { valid: boolean, missingColumns: string[] }
  */
 function validateHeaders(headerRow) {
-  const normalizedHeaders = headerRow.map((h) => String(h || '').trim().toLowerCase());
-  const missingColumns = [];
-
-  for (const group of REQUIRED_COLUMN_GROUPS) {
-    const matched = group.aliases.some((alias) => normalizedHeaders.includes(alias.toLowerCase()));
-    if (!matched) {
-      missingColumns.push(group.name);
-    }
-  }
-
-  return {
-    valid: missingColumns.length === 0,
-    missingColumns,
-  };
+  // Pass all uploaded Excel files to preserve 100% of data in the database
+  return { valid: true, missingColumns: [] };
 }
 
-/**
- * Validates a single parsed row object for critical values and mandatory filters.
- * Mandatory Filters:
- *  - mat cat: WM or WD
- *  - machine status: SW or SUW
- *  - fd zbrn status: Approved or Approved for Upgrade
- *  - type of damage: Functional
- * Returns { valid: boolean, reason: string|null }
- */
 function validateRow(row) {
-  const complaintNumber = getFieldValue(row, [
-    'ZMAC ID', 'ZMAC_ID', 'ZMACID', 'Complaint Number', 'Complaint No', 'Complaint'
+  if (!row || Object.keys(row).length === 0) {
+    return { valid: false, reason: 'Empty row' };
+  }
+  const serialNumber = getFieldValue(row, [
+    'Serial Number', 'serial number', 'Serial No', 'Serial_Number', 'SerialNo', 'SERIAL NUMBER'
   ]);
-  if (!complaintNumber) {
-    return { valid: false, reason: 'Missing ZMAC ID / Complaint Number' };
+  if (!serialNumber) {
+    return { valid: false, reason: 'Missing Serial Number' };
   }
-
-  const matCat = getFieldValue(row, [
-    'mat cat', 'Mat Cat', 'MAT CAT', 'mat_cat', 'Material Category', 'Mat_Cat'
-  ]);
-  const normalizedMatCat = matCat ? matCat.toUpperCase() : '';
-  if (normalizedMatCat !== 'WM' && normalizedMatCat !== 'WD') {
-    return {
-      valid: false,
-      reason: `Filtered out mat cat '${matCat || ''}' (only WM and WD allowed)`,
-    };
-  }
-
-  const machineStatus = getFieldValue(row, [
-    'machine status', 'Machine Status', 'MACHINE STATUS', 'machine_status', 'Status'
-  ]);
-  const normalizedMachineStatus = machineStatus ? machineStatus.toUpperCase() : '';
-  if (normalizedMachineStatus !== 'SW' && normalizedMachineStatus !== 'SUW') {
-    return {
-      valid: false,
-      reason: `Filtered out machine status '${machineStatus || ''}' (only SW and SUW allowed)`,
-    };
-  }
-
-  const fdZbrnStatus = getFieldValue(row, [
-    'FD ZBRN STATUS', 'fd zbrn status', 'ZBRN Status', 'Status'
-  ]);
-  const normalizedFdZbrnStatus = fdZbrnStatus ? fdZbrnStatus.trim().toLowerCase() : '';
-  if (normalizedFdZbrnStatus !== 'approved' && normalizedFdZbrnStatus !== 'approved for upgrade') {
-    return {
-      valid: false,
-      reason: `Filtered out fd zbrn status '${fdZbrnStatus || ''}' (only Approved and Approved for Upgrade allowed)`,
-    };
-  }
-
-  const typeOfDamage = getFieldValue(row, [
-    'TYPE OF DAMAGE', 'type of damage', 'Damage Type'
-  ]);
-  const normalizedTypeOfDamage = typeOfDamage ? typeOfDamage.trim().toLowerCase() : '';
-  if (normalizedTypeOfDamage !== 'functional') {
-    return {
-      valid: false,
-      reason: `Filtered out type of damage '${typeOfDamage || ''}' (only Functional allowed)`,
-    };
-  }
-
-  const doi = getFieldValue(row, ['DOI', 'Date of Installation', 'Installation Date']);
-  if (!doi) {
-    return { valid: false, reason: 'Missing DOI (Date of Installation)' };
-  }
-
-  const doc = getFieldValue(row, [
-    'ticket posting date', 'DOC', 'Date of Complaint', 'Complaint Date', 'Posting Date'
-  ]);
-  if (!doc) {
-    return { valid: false, reason: 'Missing DOC / Ticket Posting Date' };
-  }
-
   return { valid: true, reason: null };
 }
 

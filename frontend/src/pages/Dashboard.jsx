@@ -38,7 +38,7 @@ export default function Dashboard() {
                 <p className="mt-2 text-4xl font-display font-bold text-ink-950 tabular-nums">
                   {data.data.total.toLocaleString()}
                 </p>
-                <p className="text-sm text-ink-500 mt-1">Approved / Approved for Upgrade · Functional damage</p>
+                <p className="text-sm text-ink-500 mt-1">Approved / Approved for Upgrade · Machine Status: SW · Mat Cat: WM/WD</p>
               </div>
               <Link to="/product-replacement" className="btn-primary mt-6 self-start">
                 View Product Replacement

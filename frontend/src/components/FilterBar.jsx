@@ -8,6 +8,8 @@
 export default function FilterBar({
   search,
   onSearchChange,
+  typeOfDamage = '',
+  onDamageTypeChange,
   activeCategoryLabel,
   onClearCategory,
   onExport,
@@ -31,10 +33,28 @@ export default function FilterBar({
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search complaint, model, or serial number"
-            className="input-field pl-9 w-full sm:w-80"
+            placeholder="Search complaint, spare, description, etc."
+            className="input-field pl-9 w-full sm:w-72"
           />
         </div>
+
+        {onDamageTypeChange && (
+          <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="damage-type-select" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+              Damage Type:
+            </label>
+            <select
+              id="damage-type-select"
+              value={typeOfDamage}
+              onChange={(e) => onDamageTypeChange(e.target.value)}
+              className="text-xs font-medium text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="">All Damage Types</option>
+              <option value="Functional">Functional Damages</option>
+              <option value="Transit">Transit Damages</option>
+            </select>
+          </div>
+        )}
 
         {activeCategoryLabel && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/10 text-signal-dark text-xs font-semibold pl-3 pr-1.5 py-1.5">

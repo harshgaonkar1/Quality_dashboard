@@ -19,8 +19,10 @@ const AGEING_CATEGORIES = [
  * Returns null if ageingDays is null/undefined/invalid.
  */
 function getAgeingCategory(ageingDays) {
-  if (ageingDays === null || ageingDays === undefined || isNaN(ageingDays)) return null;
-  return AGEING_CATEGORIES.find((cat) => ageingDays >= cat.min && ageingDays <= cat.max) || null;
+  if (ageingDays === null || ageingDays === undefined || isNaN(ageingDays) || ageingDays <= 90) {
+    return AGEING_CATEGORIES[0]; // '0-3-months'
+  }
+  return AGEING_CATEGORIES.find((cat) => ageingDays >= cat.min && ageingDays <= cat.max) || AGEING_CATEGORIES[0];
 }
 
 /**

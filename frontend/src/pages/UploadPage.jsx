@@ -48,8 +48,8 @@ export default function UploadPage() {
       <div>
         <h2 className="font-display text-xl font-bold text-ink-950">Upload Data</h2>
         <p className="text-sm text-ink-500 mt-1">
-          Parses uploaded Excel files using <strong>ZMAC ID</strong> (Complaint Number) and <strong>Product Description</strong> (Model).
-          Filters automatically for <strong>mat cat</strong> (WM, WD) and <strong>machine status</strong> (SW, SUW).
+          Parses and saves all Excel rows using <strong>Serial Number</strong>.
+          Dashboard filters for <strong>FD ZBRN Status</strong> (Approved, Approved for Upgrade), <strong>machine status</strong> (SW), and <strong>mat cat</strong> (WM, WD).
         </p>
       </div>
 

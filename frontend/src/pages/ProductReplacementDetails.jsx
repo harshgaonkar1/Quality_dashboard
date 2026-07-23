@@ -30,27 +30,21 @@ const CATEGORY_LABELS = {
 };
 
 const COLUMNS = [
-  { key: 'complaint_number', label: 'Complaint No.', sortable: true },
-  { key: 'model', label: 'Model', sortable: true },
-  { key: 'branch', label: 'Branch', sortable: true },
-  { key: 'mat_cat', label: 'Mat Cat', sortable: true },
-  { key: 'machine_status', label: 'Machine Status', sortable: true },
-  { key: 'serial_number', label: 'Serial No.', sortable: true },
-  { key: 'doi', label: 'DOI', sortable: true, render: (row) => formatDate(row.doi) },
-  { key: 'doc', label: 'DOC', sortable: true, render: (row) => formatDate(row.doc) },
-  {
-    key: 'ageing_days',
-    label: 'Ageing',
-    sortable: true,
-    render: (row) => (
-      <span className="inline-flex items-center gap-1.5">
-        <span className="font-semibold tabular-nums">{row.ageing_days}d</span>
-        <span className="text-xs text-ink-400">· {row.ageing_category}</span>
-      </span>
-    ),
-  },
-  { key: 'fd_zbrn_status', label: 'FD ZBRN Status', sortable: false },
-  { key: 'type_of_damage', label: 'Type of Damage', sortable: false },
+  { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
+  { key: 'fd_zbrn_status', label: 'fd zbrn status', sortable: true },
+  { key: 'branch', label: 'branch name', sortable: true },
+  { key: 'ticket_no', label: 'ticket no', sortable: true },
+  { key: 'machine_status', label: 'machine status', sortable: true },
+  { key: 'doc', label: 'doc', sortable: true, render: (row) => formatDate(row.doc) },
+  { key: 'dop', label: 'dop', sortable: true, render: (row) => formatDate(row.dop) },
+  { key: 'doi', label: 'doi', sortable: true, render: (row) => formatDate(row.doi) },
+  { key: 'model', label: 'product description', sortable: true },
+  { key: 'serial_number', label: 'serial number', sortable: true },
+  { key: 'part_code', label: 'spare', sortable: true },
+  { key: 'part_description', label: 'spare desc', sortable: true },
+  { key: 'type_of_damage', label: 'type of damage', sortable: true },
+  { key: 'survey_origin', label: 'survey origin', sortable: true },
+  { key: 'customer_complaint', label: 'customer complaint', sortable: true },
 ];
 
 export default function ProductReplacementDetails() {
@@ -58,6 +52,7 @@ export default function ProductReplacementDetails() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const ageingCategory = searchParams.get('ageingCategory') || '';
+  const typeOfDamage = searchParams.get('typeOfDamage') || '';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('doc');
@@ -69,19 +64,20 @@ export default function ProductReplacementDetails() {
   // Reset to page 1 whenever the filter scope or search term changes
   useEffect(() => {
     setPage(1);
-  }, [ageingCategory, debouncedSearch]);
+  }, [ageingCategory, typeOfDamage, debouncedSearch]);
 
   const fetchFn = useCallback(
     () =>
       fetchDashboardDetails({
         ageingCategory: ageingCategory || undefined,
+        typeOfDamage: typeOfDamage || undefined,
         page,
         pageSize: PAGE_SIZE,
         search: debouncedSearch,
         sortBy,
         sortDir,
       }),
-    [ageingCategory, page, debouncedSearch, sortBy, sortDir]
+    [ageingCategory, typeOfDamage, page, debouncedSearch, sortBy, sortDir]
   );
 
   const { data, loading, error, refetch } = useFetch(fetchFn, [fetchFn]);
@@ -96,7 +92,23 @@ export default function ProductReplacementDetails() {
   }
 
   function handleClearCategory() {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('ageingCategory');
+      return next;
+    });
+  }
+
+  function handleDamageTypeChange(val) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (val) {
+        next.set('typeOfDamage', val);
+      } else {
+        next.delete('typeOfDamage');
+      }
+      return next;
+    });
   }
 
   async function handleExport() {
@@ -104,25 +116,29 @@ export default function ProductReplacementDetails() {
       setExporting(true);
       const result = await fetchDetailsForExport({
         ageingCategory: ageingCategory || undefined,
+        typeOfDamage: typeOfDamage || undefined,
         search: debouncedSearch,
       });
       exportToCSV(
         result.data.rows,
         [
-          { key: 'complaint_number', label: 'Complaint Number' },
-          { key: 'model', label: 'Model' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'mat_cat', label: 'Mat Cat' },
-          { key: 'machine_status', label: 'Machine Status' },
-          { key: 'serial_number', label: 'Serial Number' },
-          { key: 'doi', label: 'DOI' },
-          { key: 'doc', label: 'DOC' },
-          { key: 'ageing_days', label: 'Ageing (Days)' },
-          { key: 'ageing_category', label: 'Ageing Category' },
-          { key: 'fd_zbrn_status', label: 'FD ZBRN Status' },
-          { key: 'type_of_damage', label: 'Type of Damage' },
+          { key: 'complaint_number', label: 'ZMAC ID' },
+          { key: 'fd_zbrn_status', label: 'fd zbrn status' },
+          { key: 'branch', label: 'branch name' },
+          { key: 'doc', label: 'doc' },
+          { key: 'ticket_no', label: 'ticket no' },
+          { key: 'machine_status', label: 'machine status' },
+          { key: 'dop', label: 'dop' },
+          { key: 'doi', label: 'doi' },
+          { key: 'model', label: 'product description' },
+          { key: 'serial_number', label: 'serial number' },
+          { key: 'survey_origin', label: 'survey origin' },
+          { key: 'part_code', label: 'spare' },
+          { key: 'part_description', label: 'spare desc' },
+          { key: 'type_of_damage', label: 'type of damage' },
+          { key: 'customer_complaint', label: 'customer complaint' },
         ],
-        `product-replacement-${ageingCategory || 'all'}-${Date.now()}.csv`
+        `product-replacement-${typeOfDamage || 'all'}-${ageingCategory || 'all'}-${Date.now()}.csv`
       );
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -146,13 +162,15 @@ export default function ProductReplacementDetails() {
         </button>
         <div>
           <h2 className="font-display text-xl font-bold text-ink-950">Product Replacement Details</h2>
-          <p className="text-sm text-ink-500">Live data from MySQL, filtered to approved functional-damage cases</p>
+          <p className="text-sm text-ink-500">Live data from MySQL for approved product replacement cases</p>
         </div>
       </div>
 
       <FilterBar
         search={search}
         onSearchChange={setSearch}
+        typeOfDamage={typeOfDamage}
+        onDamageTypeChange={handleDamageTypeChange}
         activeCategoryLabel={CATEGORY_LABELS[ageingCategory]}
         onClearCategory={handleClearCategory}
         onExport={handleExport}

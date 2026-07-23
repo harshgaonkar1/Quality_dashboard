@@ -18,22 +18,47 @@ USE dashboard_db;
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS product_replacement (
   id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  complaint_number    VARCHAR(64)  NOT NULL,
-  model               VARCHAR(128) NULL,
-  branch              VARCHAR(128) NULL,
-  mat_cat             VARCHAR(64)  NULL,
-  machine_status      VARCHAR(64)  NULL,
-  serial_number       VARCHAR(128) NULL,
-  doi                 DATE NULL,              -- Date of Installation
-  doc                 DATE NULL,               -- Date of Complaint
+  complaint_number    VARCHAR(64)  NULL,       -- ZMAC ID
+  zmac_date           DATE NULL,               -- zmac date
+  zmac_status         VARCHAR(64)  NULL,       -- zmac status
+  fd_zbrn_id          VARCHAR(64)  NULL,       -- fd zbrn id
+  fd_zbrn_status      VARCHAR(64)  NULL,       -- fd zbrn status
+  fd_zbrn_date        DATE NULL,               -- fd zbrn date
+  customer_first_name VARCHAR(128) NULL,       -- customer first name
+  city                VARCHAR(128) NULL,       -- city
+  franchisee_id       VARCHAR(64)  NULL,       -- franchisee id
+  franchisee_name     VARCHAR(128) NULL,       -- franchisee name
+  branch              VARCHAR(128) NULL,       -- branch name
+  doc                 DATE NULL,               -- ticket posting date
+  ticket_no           VARCHAR(64)  NULL,       -- ticket no
+  call_type           VARCHAR(64)  NULL,       -- call type
+  machine_status      VARCHAR(64)  NULL,       -- machine status
+  dop                 DATE NULL,               -- dop
+  doi                 DATE NULL,               -- doi
+  technician_name     VARCHAR(128) NULL,       -- technician name
+  technician_no       VARCHAR(64)  NULL,       -- technician no
+  mat_cat             VARCHAR(64)  NULL,       -- mat cat
+  product_id          VARCHAR(64)  NULL,       -- product id
+  model               VARCHAR(255) NULL,       -- product description
+  serial_number       VARCHAR(128) NOT NULL,      -- serial number
+  survey_origin       VARCHAR(128) NULL,       -- survey origin
+  type_of_damage      VARCHAR(64)  NULL,       -- type of damage
+  customer_complaint  TEXT NULL,               -- customer complaint
+  part_description    VARCHAR(255) NULL,       -- spare desc
+  part_code           VARCHAR(128) NULL,       -- spare
+  out_bound_del       VARCHAR(128) NULL,       -- out bound del
+  out_bound_del_date  DATE NULL,               -- out bound del date
+  dealer_code         VARCHAR(64)  NULL,       -- dealer code
+  dealer_name         VARCHAR(128) NULL,       -- dealer name
+  bse_name            VARCHAR(128) NULL,       -- BSE Name
+  industry            VARCHAR(128) NULL,       -- Industry
   ageing_days         INT NULL,                -- DOC - DOI in days
-  fd_zbrn_status      VARCHAR(64) NULL,        -- Approved / Approved for Upgrade / etc
-  type_of_damage      VARCHAR(64) NULL,        -- Functional / etc
   raw_payload         JSON NULL,               -- original row snapshot for audit/debug
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  CONSTRAINT uq_product_complaint_number UNIQUE (complaint_number),
+  CONSTRAINT uq_product_serial_number UNIQUE (serial_number),
+  INDEX idx_product_complaint_number (complaint_number),
   INDEX idx_product_fd_zbrn_status (fd_zbrn_status),
   INDEX idx_product_type_of_damage (type_of_damage),
   INDEX idx_product_ageing_days (ageing_days),
@@ -45,24 +70,49 @@ CREATE TABLE IF NOT EXISTS product_replacement (
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS part_replacement (
   id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  complaint_number    VARCHAR(64)  NOT NULL,
-  model               VARCHAR(128) NULL,
+  complaint_number    VARCHAR(64)  NULL,
+  zmac_date           DATE NULL,
+  zmac_status         VARCHAR(64)  NULL,
+  fd_zbrn_id          VARCHAR(64)  NULL,
+  fd_zbrn_status      VARCHAR(64)  NULL,
+  fd_zbrn_date        DATE NULL,
+  customer_first_name VARCHAR(128) NULL,
+  city                VARCHAR(128) NULL,
+  franchisee_id       VARCHAR(64)  NULL,
+  franchisee_name     VARCHAR(128) NULL,
   branch              VARCHAR(128) NULL,
-  mat_cat             VARCHAR(64)  NULL,
+  doc                 DATE NULL,
+  ticket_no           VARCHAR(64)  NULL,
+  call_type           VARCHAR(64)  NULL,
   machine_status      VARCHAR(64)  NULL,
-  serial_number       VARCHAR(128) NULL,
+  dop                 DATE NULL,
+  doi                 DATE NULL,
+  technician_name     VARCHAR(128) NULL,
+  technician_no       VARCHAR(64)  NULL,
+  mat_cat             VARCHAR(64)  NULL,
+  product_id          VARCHAR(64)  NULL,
+  model               VARCHAR(255) NULL,
+  serial_number       VARCHAR(128) NOT NULL,
   part_number         VARCHAR(128) NULL,
   part_name           VARCHAR(128) NULL,
-  doi                 DATE NULL,
-  doc                 DATE NULL,
+  survey_origin       VARCHAR(128) NULL,
+  type_of_damage      VARCHAR(64)  NULL,
+  customer_complaint  TEXT NULL,
+  part_description    VARCHAR(255) NULL,
+  part_code           VARCHAR(128) NULL,
+  out_bound_del       VARCHAR(128) NULL,
+  out_bound_del_date  DATE NULL,
+  dealer_code         VARCHAR(64)  NULL,
+  dealer_name         VARCHAR(128) NULL,
+  bse_name            VARCHAR(128) NULL,
+  industry            VARCHAR(128) NULL,
   ageing_days         INT NULL,
-  fd_zbrn_status      VARCHAR(64) NULL,
-  type_of_damage      VARCHAR(64) NULL,
   raw_payload         JSON NULL,
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  CONSTRAINT uq_part_complaint_number UNIQUE (complaint_number),
+  CONSTRAINT uq_part_serial_number UNIQUE (serial_number),
+  INDEX idx_part_complaint_number (complaint_number),
   INDEX idx_part_fd_zbrn_status (fd_zbrn_status),
   INDEX idx_part_type_of_damage (type_of_damage),
   INDEX idx_part_ageing_days (ageing_days),
