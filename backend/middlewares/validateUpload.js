@@ -75,14 +75,9 @@ function validateHeaders(headerRow) {
 }
 
 function validateRow(row) {
+  // Allow all non-empty rows to be stored in database
   if (!row || Object.keys(row).length === 0) {
     return { valid: false, reason: 'Empty row' };
-  }
-  const serialNumber = getFieldValue(row, [
-    'Serial Number', 'serial number', 'Serial No', 'Serial_Number', 'SerialNo', 'SERIAL NUMBER'
-  ]);
-  if (!serialNumber) {
-    return { valid: false, reason: 'Missing Serial Number' };
   }
   return { valid: true, reason: null };
 }
