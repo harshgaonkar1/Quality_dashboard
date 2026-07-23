@@ -32,15 +32,43 @@ export default function Dashboard() {
       {data && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="panel p-6 flex flex-col justify-between">
+            <div className="panel p-6 flex flex-col justify-between space-y-4">
               <div>
-                <p className="label-text">Total Open Cases</p>
-                <p className="mt-2 text-4xl font-display font-bold text-ink-950 tabular-nums">
-                  {data.data.total.toLocaleString()}
-                </p>
-                <p className="text-sm text-ink-500 mt-1">Approved / Approved for Upgrade · Machine Status: SW · Mat Cat: WM/WD</p>
+                <div className="flex items-center justify-between border-b border-mist-200 pb-3">
+                  <div>
+                    <p className="label-text">Total Open Cases</p>
+                    <p className="mt-1 text-4xl font-display font-bold text-ink-950 tabular-nums">
+                      {data.data.total.toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="badge badge-accent text-xs font-semibold px-2.5 py-1">All Models</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <Link
+                    to="/product-replacement?productCategory=TL"
+                    className="p-3 rounded-lg bg-mist-100/60 border border-mist-200 hover:bg-mist-200/60 transition-colors block"
+                  >
+                    <p className="text-xs font-semibold text-ink-500">TL Category</p>
+                    <p className="text-2xl font-display font-bold text-ink-900 tabular-nums mt-0.5">
+                      {(data.data.tlCount || 0).toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-ink-400 mt-0.5">TL Models</p>
+                  </Link>
+
+                  <Link
+                    to="/product-replacement?productCategory=FL"
+                    className="p-3 rounded-lg bg-mist-100/60 border border-mist-200 hover:bg-mist-200/60 transition-colors block"
+                  >
+                    <p className="text-xs font-semibold text-ink-500">FL Category</p>
+                    <p className="text-2xl font-display font-bold text-ink-900 tabular-nums mt-0.5">
+                      {(data.data.flCount || 0).toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-ink-400 mt-0.5">FL Models</p>
+                  </Link>
+                </div>
               </div>
-              <Link to="/product-replacement" className="btn-primary mt-6 self-start">
+              <Link to="/product-replacement" className="btn-primary self-start">
                 View Product Replacement
               </Link>
             </div>

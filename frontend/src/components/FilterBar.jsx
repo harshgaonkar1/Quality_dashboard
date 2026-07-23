@@ -10,6 +10,8 @@ export default function FilterBar({
   onSearchChange,
   typeOfDamage = '',
   onDamageTypeChange,
+  productCategory = '',
+  onProductCategoryChange,
   activeCategoryLabel,
   onClearCategory,
   onExport,
@@ -52,6 +54,24 @@ export default function FilterBar({
               <option value="">All Damage Types</option>
               <option value="Functional">Functional Damages</option>
               <option value="Transit">Transit Damages</option>
+            </select>
+          </div>
+        )}
+
+        {onProductCategoryChange && (
+          <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="product-category-select" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+              Model Type:
+            </label>
+            <select
+              id="product-category-select"
+              value={productCategory}
+              onChange={(e) => onProductCategoryChange(e.target.value)}
+              className="text-xs font-medium text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="">All Models</option>
+              <option value="TL">TL Models</option>
+              <option value="FL">FL Models</option>
             </select>
           </div>
         )}

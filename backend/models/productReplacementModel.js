@@ -26,15 +26,24 @@ const BASE_WHERE = `
 const BASE_PARAMS = [...ALLOWED_STATUS, ...ALLOWED_MAT_CAT, ...ALLOWED_MACHINE_STATUS];
 
 /**
- * Builds standard WHERE clause incorporating optional damage type, ageing range, and search.
+ * Builds standard WHERE clause incorporating optional damage type, product category, ageing range, and search.
  */
-function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '' } = {}) {
+function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '' } = {}) {
   let whereClause = BASE_WHERE;
   const params = [...BASE_PARAMS];
 
   if (typeOfDamage && typeOfDamage.trim() !== '' && typeOfDamage.toUpperCase() !== 'ALL') {
     whereClause += ' AND (LOWER(type_of_damage) LIKE LOWER(?))';
     params.push(`%${typeOfDamage.trim()}%`);
+  }
+
+  if (productCategory && productCategory.trim() !== '' && productCategory.toUpperCase() !== 'ALL') {
+    const cat = productCategory.trim().toUpperCase();
+    if (cat === 'TL') {
+      whereClause += " AND (UPPER(model) LIKE 'TL%')";
+    } else if (cat === 'FL') {
+      whereClause += " AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL)";
+    }
   }
 
   if (ageingMin !== null && ageingMax !== null) {
@@ -56,19 +65,39 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
 }
 
 /**
- * Returns ageing-bucket counts for the summary cards, respecting the
- * FD ZBRN STATUS and optional damage type filters.
+ * Returns ageing-bucket counts and TL/FL bifurcation for the summary cards,
+ * respecting the FD ZBRN STATUS, damage type, and product category filters.
  */
-async function getSummaryCounts({ typeOfDamage = '' } = {}) {
-  const { whereClause, params } = buildWhereClause({ typeOfDamage });
+async function getSummaryCounts({ typeOfDamage = '', productCategory = '' } = {}) {
+  const { whereClause, params } = buildWhereClause({ typeOfDamage, productCategory });
   const [rows] = await pool.query(
     `SELECT
         SUM(CASE WHEN ageing_days IS NULL OR ageing_days <= 90 THEN 1 ELSE 0 END) AS bucket_0_3_months,
+        SUM(CASE WHEN (ageing_days IS NULL OR ageing_days <= 90) AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
+        SUM(CASE WHEN (ageing_days IS NULL OR ageing_days <= 90) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
+
         SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 THEN 1 ELSE 0 END)   AS bucket_1_year,
+        SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_1_year_tl,
+        SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_1_year_fl,
+
         SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 THEN 1 ELSE 0 END)  AS bucket_2_year,
+        SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_2_year_tl,
+        SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_2_year_fl,
+
         SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 THEN 1 ELSE 0 END) AS bucket_3_year,
+        SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_3_year_tl,
+        SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_3_year_fl,
+
         SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 THEN 1 ELSE 0 END) AS bucket_4_year,
+        SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_4_year_tl,
+        SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_4_year_fl,
+
         SUM(CASE WHEN ageing_days > 1460 THEN 1 ELSE 0 END)               AS bucket_more_than_4_years,
+        SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl,
+        SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl,
+
+        SUM(CASE WHEN UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END)          AS tl_count,
+        SUM(CASE WHEN UPPER(model) NOT LIKE 'TL%' OR model IS NULL THEN 1 ELSE 0 END) AS fl_count,
         COUNT(*) AS total
      FROM product_replacement
      WHERE ${whereClause}`,
@@ -89,6 +118,7 @@ async function getDetails({
   ageingMin = null,
   ageingMax = null,
   typeOfDamage = '',
+  productCategory = '',
 } = {}) {
   const allowedSortColumns = [
     'complaint_number', 'zmac_date', 'zmac_status', 'fd_zbrn_id', 'fd_zbrn_status', 'fd_zbrn_date',
@@ -101,7 +131,7 @@ async function getDetails({
   const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'doc';
   const safeSortDir = sortDir && sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage });
+  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory });
 
   const offset = (page - 1) * pageSize;
 
@@ -131,8 +161,8 @@ async function getDetails({
 /**
  * Returns ALL matching detail rows (no pagination) for CSV export.
  */
-async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '' } = {}) {
-  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage });
+async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '' } = {}) {
+  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory });
 
   const [rows] = await pool.query(
     `SELECT complaint_number, zmac_date, zmac_status, fd_zbrn_id, fd_zbrn_status, fd_zbrn_date,

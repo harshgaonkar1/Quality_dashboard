@@ -53,6 +53,7 @@ export default function ProductReplacementDetails() {
 
   const ageingCategory = searchParams.get('ageingCategory') || '';
   const typeOfDamage = searchParams.get('typeOfDamage') || '';
+  const productCategory = searchParams.get('productCategory') || '';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('doc');
@@ -64,20 +65,21 @@ export default function ProductReplacementDetails() {
   // Reset to page 1 whenever the filter scope or search term changes
   useEffect(() => {
     setPage(1);
-  }, [ageingCategory, typeOfDamage, debouncedSearch]);
+  }, [ageingCategory, typeOfDamage, productCategory, debouncedSearch]);
 
   const fetchFn = useCallback(
     () =>
       fetchDashboardDetails({
         ageingCategory: ageingCategory || undefined,
         typeOfDamage: typeOfDamage || undefined,
+        productCategory: productCategory || undefined,
         page,
         pageSize: PAGE_SIZE,
         search: debouncedSearch,
         sortBy,
         sortDir,
       }),
-    [ageingCategory, typeOfDamage, page, debouncedSearch, sortBy, sortDir]
+    [ageingCategory, typeOfDamage, productCategory, page, debouncedSearch, sortBy, sortDir]
   );
 
   const { data, loading, error, refetch } = useFetch(fetchFn, [fetchFn]);
@@ -111,12 +113,25 @@ export default function ProductReplacementDetails() {
     });
   }
 
+  function handleProductCategoryChange(val) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (val) {
+        next.set('productCategory', val);
+      } else {
+        next.delete('productCategory');
+      }
+      return next;
+    });
+  }
+
   async function handleExport() {
     try {
       setExporting(true);
       const result = await fetchDetailsForExport({
         ageingCategory: ageingCategory || undefined,
         typeOfDamage: typeOfDamage || undefined,
+        productCategory: productCategory || undefined,
         search: debouncedSearch,
       });
       exportToCSV(
@@ -125,20 +140,20 @@ export default function ProductReplacementDetails() {
           { key: 'complaint_number', label: 'ZMAC ID' },
           { key: 'fd_zbrn_status', label: 'fd zbrn status' },
           { key: 'branch', label: 'branch name' },
-          { key: 'doc', label: 'doc' },
           { key: 'ticket_no', label: 'ticket no' },
           { key: 'machine_status', label: 'machine status' },
+          { key: 'doc', label: 'doc' },
           { key: 'dop', label: 'dop' },
           { key: 'doi', label: 'doi' },
           { key: 'model', label: 'product description' },
           { key: 'serial_number', label: 'serial number' },
-          { key: 'survey_origin', label: 'survey origin' },
           { key: 'part_code', label: 'spare' },
           { key: 'part_description', label: 'spare desc' },
           { key: 'type_of_damage', label: 'type of damage' },
+          { key: 'survey_origin', label: 'survey origin' },
           { key: 'customer_complaint', label: 'customer complaint' },
         ],
-        `product-replacement-${typeOfDamage || 'all'}-${ageingCategory || 'all'}-${Date.now()}.csv`
+        `product-replacement-${typeOfDamage || 'all'}-${productCategory || 'all'}-${ageingCategory || 'all'}-${Date.now()}.csv`
       );
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -171,6 +186,8 @@ export default function ProductReplacementDetails() {
         onSearchChange={setSearch}
         typeOfDamage={typeOfDamage}
         onDamageTypeChange={handleDamageTypeChange}
+        productCategory={productCategory}
+        onProductCategoryChange={handleProductCategoryChange}
         activeCategoryLabel={CATEGORY_LABELS[ageingCategory]}
         onClearCategory={handleClearCategory}
         onExport={handleExport}

@@ -13,28 +13,66 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  * Builds the summary card payload: one entry per ageing bucket,
  * each with its label and count.
  */
-async function getDashboardSummary({ typeOfDamage = '' } = {}) {
-  const counts = await productReplacementModel.getSummaryCounts({ typeOfDamage });
+async function getDashboardSummary({ typeOfDamage = '', productCategory = '' } = {}) {
+  const counts = await productReplacementModel.getSummaryCounts({ typeOfDamage, productCategory });
 
   const cards = [
-    { key: '0-3-months', label: '0-3 Months', count: Number(counts.bucket_0_3_months) || 0 },
-    { key: '1-year', label: '1 Year', count: Number(counts.bucket_1_year) || 0 },
-    { key: '2-year', label: '2 Year', count: Number(counts.bucket_2_year) || 0 },
-    { key: '3-year', label: '3 Year', count: Number(counts.bucket_3_year) || 0 },
-    { key: '4-year', label: '4 Year', count: Number(counts.bucket_4_year) || 0 },
-    { key: 'more-than-4-years', label: 'More than 4 Years', count: Number(counts.bucket_more_than_4_years) || 0 },
+    {
+      key: '0-3-months',
+      label: '0-3 Months',
+      count: Number(counts.bucket_0_3_months) || 0,
+      tlCount: Number(counts.bucket_0_3_months_tl) || 0,
+      flCount: Number(counts.bucket_0_3_months_fl) || 0,
+    },
+    {
+      key: '1-year',
+      label: '1 Year',
+      count: Number(counts.bucket_1_year) || 0,
+      tlCount: Number(counts.bucket_1_year_tl) || 0,
+      flCount: Number(counts.bucket_1_year_fl) || 0,
+    },
+    {
+      key: '2-year',
+      label: '2 Year',
+      count: Number(counts.bucket_2_year) || 0,
+      tlCount: Number(counts.bucket_2_year_tl) || 0,
+      flCount: Number(counts.bucket_2_year_fl) || 0,
+    },
+    {
+      key: '3-year',
+      label: '3 Year',
+      count: Number(counts.bucket_3_year) || 0,
+      tlCount: Number(counts.bucket_3_year_tl) || 0,
+      flCount: Number(counts.bucket_3_year_fl) || 0,
+    },
+    {
+      key: '4-year',
+      label: '4 Year',
+      count: Number(counts.bucket_4_year) || 0,
+      tlCount: Number(counts.bucket_4_year_tl) || 0,
+      flCount: Number(counts.bucket_4_year_fl) || 0,
+    },
+    {
+      key: 'more-than-4-years',
+      label: 'More than 4 Years',
+      count: Number(counts.bucket_more_than_4_years) || 0,
+      tlCount: Number(counts.bucket_more_than_4_years_tl) || 0,
+      flCount: Number(counts.bucket_more_than_4_years_fl) || 0,
+    },
   ];
 
   const total = cards.reduce((sum, card) => sum + card.count, 0);
+  const tlCount = Number(counts.tl_count) || 0;
+  const flCount = Number(counts.fl_count) || 0;
 
-  return { total, cards };
+  return { total, tlCount, flCount, cards };
 }
 
 /**
  * Fetches the paginated detail rows for a given ageing category (optional),
  * enriching each row with its human-readable ageing category label.
  */
-async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, typeOfDamage }) {
+async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, typeOfDamage, productCategory }) {
   let ageingMin = null;
   let ageingMax = null;
 
@@ -50,7 +88,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
   }
 
   const result = await productReplacementModel.getDetails({
-    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, typeOfDamage,
+    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, typeOfDamage, productCategory,
   });
 
   const enrichedRows = result.rows.map((row) => ({
@@ -64,7 +102,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
 /**
  * Fetches ALL matching rows (no pagination) for CSV export, with ageing labels attached.
  */
-async function getDetailsForExport({ ageingCategory, search, typeOfDamage }) {
+async function getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory }) {
   let ageingMin = null;
   let ageingMax = null;
 
@@ -76,7 +114,7 @@ async function getDetailsForExport({ ageingCategory, search, typeOfDamage }) {
     }
   }
 
-  const rows = await productReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, typeOfDamage });
+  const rows = await productReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, typeOfDamage, productCategory });
   return rows.map((row) => ({
     ...row,
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',

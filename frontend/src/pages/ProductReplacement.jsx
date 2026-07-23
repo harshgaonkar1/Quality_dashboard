@@ -18,20 +18,23 @@ import ErrorBanner from '../components/ErrorBanner';
 export default function ProductReplacement() {
   const navigate = useNavigate();
   const [typeOfDamage, setTypeOfDamage] = useState('');
+  const [productCategory, setProductCategory] = useState('');
 
-  const fetchFn = useCallback(() => fetchDashboardSummary({ typeOfDamage }), [typeOfDamage]);
+  const fetchFn = useCallback(() => fetchDashboardSummary({ typeOfDamage, productCategory }), [typeOfDamage, productCategory]);
   const { data, loading, error, refetch } = useFetch(fetchFn, [fetchFn]);
 
   function handleCardClick(categoryKey) {
     const params = new URLSearchParams();
     if (categoryKey) params.set('ageingCategory', categoryKey);
     if (typeOfDamage) params.set('typeOfDamage', typeOfDamage);
+    if (productCategory) params.set('productCategory', productCategory);
     navigate(`/product-replacement/details?${params.toString()}`);
   }
 
   function handleViewAll() {
     const params = new URLSearchParams();
     if (typeOfDamage) params.set('typeOfDamage', typeOfDamage);
+    if (productCategory) params.set('productCategory', productCategory);
     const queryString = params.toString();
     navigate(`/product-replacement/details${queryString ? `?${queryString}` : ''}`);
   }
@@ -45,7 +48,7 @@ export default function ProductReplacement() {
             FD ZBRN Status: Approved / Approved for Upgrade · Machine Status: SW · Mat Cat: WM / WD
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 bg-white border border-mist-200 rounded-lg px-3 py-1.5 shadow-xs">
             <label htmlFor="damage-type-overview" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
               Damage Type:
@@ -61,6 +64,23 @@ export default function ProductReplacement() {
               <option value="Transit">Transit Damages</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-2 bg-white border border-mist-200 rounded-lg px-3 py-1.5 shadow-xs">
+            <label htmlFor="product-category-overview" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+              Model Type:
+            </label>
+            <select
+              id="product-category-overview"
+              value={productCategory}
+              onChange={(e) => setProductCategory(e.target.value)}
+              className="text-xs font-semibold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="">All Models</option>
+              <option value="TL">TL Models</option>
+              <option value="FL">FL Models</option>
+            </select>
+          </div>
+
           <button
             onClick={handleViewAll}
             className="btn-secondary"
