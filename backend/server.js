@@ -15,6 +15,7 @@ const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const uploadRoutes = require('./routes/uploadRoutes');
 const productReplacementRoutes = require('./routes/productReplacementRoutes');
+const partReplacementRoutes = require('./routes/partReplacementRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,8 +33,7 @@ app.get('/api/health', (req, res) => {
 // ---- Routes ----
 app.use('/api', uploadRoutes);
 app.use('/api/product', productReplacementRoutes);
-// Part Replacement routes can be mounted the same way once that page is built:
-// app.use('/api/part', partReplacementRoutes);
+app.use('/api/part', partReplacementRoutes);
 
 // ---- 404 + Error Handling (must be last) ----
 app.use(notFoundHandler);

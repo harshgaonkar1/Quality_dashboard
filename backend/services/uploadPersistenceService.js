@@ -25,12 +25,9 @@ const TABLE_CONFIG = {
   PART_REPLACEMENT: {
     table: 'part_replacement',
     columns: [
-      'complaint_number', 'zmac_date', 'zmac_status', 'fd_zbrn_id', 'fd_zbrn_status', 'fd_zbrn_date',
-      'customer_first_name', 'city', 'franchisee_id', 'franchisee_name', 'branch', 'doc', 'ticket_no',
-      'call_type', 'machine_status', 'dop', 'doi', 'technician_name', 'technician_no', 'mat_cat',
-      'product_id', 'model', 'serial_number', 'part_number', 'part_name', 'survey_origin', 'type_of_damage',
-      'customer_complaint', 'part_description', 'part_code', 'out_bound_del', 'out_bound_del_date', 'dealer_code',
-      'dealer_name', 'bse_name', 'industry', 'ageing_days', 'raw_payload',
+      'complaint_number', 'branch', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
+      'machine_status', 'model', 'serial_number', 'item_code', 'description', 'problem_description',
+      'product_category', 'sub_category', 'rej_qty', 'ageing_days', 'raw_payload',
     ],
   },
 };

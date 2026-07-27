@@ -48,8 +48,7 @@ export default function UploadPage() {
       <div>
         <h2 className="font-display text-xl font-bold text-ink-950">Upload Data</h2>
         <p className="text-sm text-ink-500 mt-1">
-          Parses and saves all Excel rows using <strong>Serial Number</strong>.
-          Dashboard filters for <strong>FD ZBRN Status</strong> (Approved, Approved for Upgrade), <strong>machine status</strong> (SW), and <strong>mat cat</strong> (WM, WD).
+          Parses Excel files using <strong>Serial Number</strong>. Part Replacement filters for <strong>SPU Status</strong> (ClosedByStoreExecutive), <strong>Machine Status</strong> (Warranty), <strong>Product Category</strong> (WM), <strong>Sub Category</strong> (TLU &rarr; TL, FLU &rarr; FL), <strong>Ageing</strong> (SPU Created Date &minus; DOI), and <strong>Rej Qty</strong> (0).
         </p>
       </div>
 

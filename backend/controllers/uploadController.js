@@ -21,7 +21,7 @@ const { success, error } = require('../utils/responseHandler');
  */
 async function handleSingleFileUpload(file, uploadType) {
   const { rows, invalidRows, totalRows } = await readExcelFile(file.path);
-  const { records, skipped } = processRows(rows);
+  const { records, skipped } = processRows(rows, uploadType);
   const { insertedRows, duplicateRows } = await batchInsert(uploadType, records);
 
   const allSkipped = [...invalidRows, ...skipped];
@@ -38,6 +38,21 @@ async function handleSingleFileUpload(file, uploadType) {
     status,
     errorDetails: allSkipped.length > 0 ? allSkipped.slice(0, 50) : null, // cap stored detail size
   });
+
+  // Save permanent copy of uploaded file to backend/uploads/
+  const fs = require('fs');
+  const path = require('path');
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  const savedFileName = `${uploadType.toLowerCase()}_${Date.now()}_${file.originalname}`;
+  const savedFilePath = path.join(uploadsDir, savedFileName);
+  try {
+    fs.copyFileSync(file.path, savedFilePath);
+  } catch (copyErr) {
+    console.warn('Could not save permanent copy of uploaded file:', copyErr.message);
+  }
 
   cleanupFile(file.path);
 

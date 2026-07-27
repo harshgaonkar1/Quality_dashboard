@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon },
   { to: '/product-replacement', label: 'Product Replacement', icon: BoxIcon },
   { to: '/part-replacement', label: 'Part Replacement', icon: CogIcon },
-  { to: '/reports', label: 'Reports', icon: ChartIcon },
+  // { to: '/reports', label: 'Reports', icon: ChartIcon },
   { to: '/upload', label: 'Upload Data', icon: UploadIcon },
   // { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
@@ -61,8 +61,8 @@ export default function Sidebar({ open, onClose }) {
         </nav>
 
         <div className="px-4 py-3 border-t border-ink-800 text-xs text-mist-400 shrink-0 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-signal shrink-0" />
-          <span className="truncate">Reading live from MySQL</span>
+          {/* <span className="w-2 h-2 rounded-full bg-signal shrink-0" /> */}
+          {/* <span className="truncate">Reading live from MySQL</span> */}
         </div>
       </aside>
     </>

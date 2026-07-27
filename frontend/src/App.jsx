@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import ProductReplacement from './pages/ProductReplacement';
 import ProductReplacementDetails from './pages/ProductReplacementDetails';
 import PartReplacement from './pages/PartReplacement';
+import PartReplacementDetails from './pages/PartReplacementDetails';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import UploadPage from './pages/UploadPage';
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/product-replacement" element={<ProductReplacement />} />
         <Route path="/product-replacement/details" element={<ProductReplacementDetails />} />
         <Route path="/part-replacement" element={<PartReplacement />} />
+        <Route path="/part-replacement/details" element={<PartReplacementDetails />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/upload" element={<UploadPage />} />

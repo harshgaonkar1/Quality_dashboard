@@ -72,49 +72,30 @@ const CREATE_PART_REPLACEMENT_TABLE = `
 CREATE TABLE IF NOT EXISTS part_replacement (
   id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   complaint_number    VARCHAR(64)  NULL,
-  zmac_date           DATE NULL,
-  zmac_status         VARCHAR(64)  NULL,
-  fd_zbrn_id          VARCHAR(64)  NULL,
-  fd_zbrn_status      VARCHAR(64)  NULL,
-  fd_zbrn_date        DATE NULL,
-  customer_first_name VARCHAR(128) NULL,
-  city                VARCHAR(128) NULL,
-  franchisee_id       VARCHAR(64)  NULL,
-  franchisee_name     VARCHAR(128) NULL,
   branch              VARCHAR(128) NULL,
+  spu_status          VARCHAR(64)  NULL,
+  spu_created_date    DATE NULL,
   doc                 DATE NULL,
-  ticket_no           VARCHAR(64)  NULL,
-  call_type           VARCHAR(64)  NULL,
-  machine_status      VARCHAR(64)  NULL,
-  dop                 DATE NULL,
   doi                 DATE NULL,
-  technician_name     VARCHAR(128) NULL,
-  technician_no       VARCHAR(64)  NULL,
-  mat_cat             VARCHAR(64)  NULL,
-  product_id          VARCHAR(64)  NULL,
+  dop                 DATE NULL,
+  ticket_no           VARCHAR(64)  NULL,
+  machine_status      VARCHAR(64)  NULL,
   model               VARCHAR(255) NULL,
   serial_number       VARCHAR(128) NOT NULL,
-  part_number         VARCHAR(128) NULL,
-  part_name           VARCHAR(128) NULL,
-  survey_origin       VARCHAR(128) NULL,
-  type_of_damage      VARCHAR(64)  NULL,
-  customer_complaint  TEXT NULL,
-  part_description    VARCHAR(255) NULL,
-  part_code           VARCHAR(128) NULL,
-  out_bound_del       VARCHAR(128) NULL,
-  out_bound_del_date  DATE NULL,
-  dealer_code         VARCHAR(64)  NULL,
-  dealer_name         VARCHAR(128) NULL,
-  bse_name            VARCHAR(128) NULL,
-  industry            VARCHAR(128) NULL,
+  item_code           VARCHAR(128) NULL,
+  description         VARCHAR(255) NULL,
+  problem_description TEXT NULL,
+  product_category    VARCHAR(64)  NULL,
+  sub_category        VARCHAR(64)  NULL,
+  rej_qty             INT DEFAULT 0,
   ageing_days         INT NULL,
   raw_payload         JSON NULL,
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT uq_part_serial_number UNIQUE (serial_number),
   INDEX idx_part_complaint_number (complaint_number),
-  INDEX idx_part_fd_zbrn_status (fd_zbrn_status),
-  INDEX idx_part_type_of_damage (type_of_damage),
+  INDEX idx_part_spu_status (spu_status),
+  INDEX idx_part_sub_category (sub_category),
   INDEX idx_part_ageing_days (ageing_days),
   INDEX idx_part_doc (doc)
 ) ENGINE=InnoDB;
@@ -210,6 +191,16 @@ async function ensureDatabaseAndSchema() {
       await tempConn.query(CREATE_PRODUCT_REPLACEMENT_TABLE);
       await tempConn.query(CREATE_PART_REPLACEMENT_TABLE);
       await tempConn.query(CREATE_UPLOAD_LOGS_TABLE);
+
+      // Auto-migrate columns for part_replacement
+      await addColumnIfMissing(tempConn, 'part_replacement', 'spu_status', 'VARCHAR(64) NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'spu_created_date', 'DATE NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'item_code', 'VARCHAR(128) NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'description', 'VARCHAR(255) NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'problem_description', 'TEXT NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'product_category', 'VARCHAR(64) NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'sub_category', 'VARCHAR(64) NULL');
+      await addColumnIfMissing(tempConn, 'part_replacement', 'rej_qty', 'INT DEFAULT 0');
 
       const tables = ['product_replacement', 'part_replacement'];
       for (const table of tables) {
