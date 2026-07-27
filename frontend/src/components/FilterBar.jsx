@@ -12,6 +12,8 @@ export default function FilterBar({
   onDamageTypeChange,
   productCategory = '',
   onProductCategoryChange,
+  ageingCategory = '',
+  onAgeingCategoryChange,
   activeCategoryLabel,
   onClearCategory,
   onExport,
@@ -72,6 +74,28 @@ export default function FilterBar({
               <option value="">All Models</option>
               <option value="TL">TL Models</option>
               <option value="FL">FL Models</option>
+            </select>
+          </div>
+        )}
+
+        {onAgeingCategoryChange && (
+          <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="ageing-category-select" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+              Ageing:
+            </label>
+            <select
+              id="ageing-category-select"
+              value={ageingCategory}
+              onChange={(e) => onAgeingCategoryChange(e.target.value)}
+              className="text-xs font-medium text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="">All Ageing</option>
+              <option value="0-3-months">0-3 Months</option>
+              <option value="1-year">1 Year</option>
+              <option value="2-year">2 Year</option>
+              <option value="3-year">3 Year</option>
+              <option value="4-year">4 Year</option>
+              <option value="more-than-4-years">More than 4 Years</option>
             </select>
           </div>
         )}

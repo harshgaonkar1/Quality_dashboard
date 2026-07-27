@@ -12,7 +12,7 @@
 export default function PartReplacement() {
   return (
     <div className="max-w-3xl">
-      <h2 className="font-display text-xl font-bold text-ink-950">Part Replacement</h2>
+      {/* <h2 className="font-display text-xl font-bold text-ink-950">Part Replacement</h2>
       <p className="text-sm text-ink-500 mt-1">
         Data model and upload pipeline are already in place (see part_replacement table).
       </p>
@@ -29,7 +29,7 @@ export default function PartReplacement() {
           Summary cards, ageing chart, and details table for Part Replacement will follow the
           same pattern as Product Replacement once its filter rules are confirmed.
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }

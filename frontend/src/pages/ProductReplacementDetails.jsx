@@ -45,6 +45,8 @@ const COLUMNS = [
   { key: 'type_of_damage', label: 'type of damage', sortable: true },
   { key: 'survey_origin', label: 'survey origin', sortable: true },
   { key: 'customer_complaint', label: 'customer complaint', sortable: true },
+  { key: 'ageing_days', label: 'ageing days', sortable: true },
+  { key: 'ageing_category', label: 'ageing category', sortable: true },
 ];
 
 export default function ProductReplacementDetails() {
@@ -91,6 +93,18 @@ export default function ProductReplacementDetails() {
       setSortBy(columnKey);
       setSortDir('DESC');
     }
+  }
+
+  function handleAgeingCategoryChange(val) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (val) {
+        next.set('ageingCategory', val);
+      } else {
+        next.delete('ageingCategory');
+      }
+      return next;
+    });
   }
 
   function handleClearCategory() {
@@ -152,6 +166,8 @@ export default function ProductReplacementDetails() {
           { key: 'type_of_damage', label: 'type of damage' },
           { key: 'survey_origin', label: 'survey origin' },
           { key: 'customer_complaint', label: 'customer complaint' },
+          { key: 'ageing_days', label: 'ageing days' },
+          { key: 'ageing_category', label: 'ageing category' },
         ],
         `product-replacement-${typeOfDamage || 'all'}-${productCategory || 'all'}-${ageingCategory || 'all'}-${Date.now()}.csv`
       );
@@ -177,7 +193,7 @@ export default function ProductReplacementDetails() {
         </button>
         <div>
           <h2 className="font-display text-xl font-bold text-ink-950">Product Replacement Details</h2>
-          <p className="text-sm text-ink-500">Live data from MySQL for approved product replacement cases</p>
+          {/* <p className="text-sm text-ink-500">Live data from MySQL for approved product replacement cases</p> */}
         </div>
       </div>
 
@@ -188,6 +204,8 @@ export default function ProductReplacementDetails() {
         onDamageTypeChange={handleDamageTypeChange}
         productCategory={productCategory}
         onProductCategoryChange={handleProductCategoryChange}
+        ageingCategory={ageingCategory}
+        onAgeingCategoryChange={handleAgeingCategoryChange}
         activeCategoryLabel={CATEGORY_LABELS[ageingCategory]}
         onClearCategory={handleClearCategory}
         onExport={handleExport}

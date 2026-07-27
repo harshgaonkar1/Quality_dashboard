@@ -45,14 +45,14 @@ export default function DashboardLayout() {
             <h1 className="font-display font-semibold text-base lg:text-lg text-ink-950">{title}</h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <span className="hidden sm:inline text-xs font-medium text-ink-500 bg-mist-100 px-3 py-1.5 rounded-full">
-              Data source: MySQL
+
             </span>
             <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-ink-900 text-white flex items-center justify-center text-xs lg:text-sm font-semibold">
-              A
+
             </div>
-          </div>
+          </div> */}
         </header>
 
         <main className="flex-1 p-4 lg:p-6 xl:p-8 overflow-y-auto">
