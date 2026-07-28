@@ -12,8 +12,12 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  * Builds the summary card payload: one entry per ageing bucket,
  * each with its label and count for Part Replacement.
  */
-async function getDashboardSummary({ productCategory = '', subCategory = '' } = {}) {
-  const counts = await partReplacementModel.getSummaryCounts({ productCategory, subCategory });
+/**
+ * Builds the summary card payload: one entry per ageing bucket,
+ * each with its label and count for Part Replacement.
+ */
+async function getDashboardSummary({ productCategory = '', subCategory = '', date = '' } = {}) {
+  const counts = await partReplacementModel.getSummaryCounts({ productCategory, subCategory, date });
 
   const cards = [
     {
@@ -71,7 +75,7 @@ async function getDashboardSummary({ productCategory = '', subCategory = '' } = 
  * Fetches the paginated detail rows for a given ageing category (optional),
  * enriching each row with its human-readable ageing category label.
  */
-async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, productCategory, subCategory }) {
+async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, productCategory, subCategory, date }) {
   let ageingMin = null;
   let ageingMax = null;
 
@@ -87,7 +91,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
   }
 
   const result = await partReplacementModel.getDetails({
-    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, productCategory, subCategory,
+    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, productCategory, subCategory, date,
   });
 
   const enrichedRows = result.rows.map((row) => ({
@@ -101,7 +105,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
 /**
  * Fetches ALL matching rows (no pagination) for CSV export, with ageing labels attached.
  */
-async function getDetailsForExport({ ageingCategory, search, productCategory, subCategory }) {
+async function getDetailsForExport({ ageingCategory, search, productCategory, subCategory, date }) {
   let ageingMin = null;
   let ageingMax = null;
 
@@ -113,11 +117,16 @@ async function getDetailsForExport({ ageingCategory, search, productCategory, su
     }
   }
 
-  const rows = await partReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, productCategory, subCategory });
+  const rows = await partReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, productCategory, subCategory, date });
   return rows.map((row) => ({
     ...row,
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',
   }));
 }
 
-module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, AGEING_CATEGORIES };
+/** Updates comment for a record by serial_number. */
+async function updateComment(serialNumber, comment) {
+  return partReplacementModel.updateComment(serialNumber, comment);
+}
+
+module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, updateComment, AGEING_CATEGORIES };

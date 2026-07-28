@@ -231,6 +231,7 @@ async function ensureDatabaseAndSchema() {
         await addColumnIfMissing(tempConn, table, 'dealer_name', 'VARCHAR(128) NULL');
         await addColumnIfMissing(tempConn, table, 'bse_name', 'VARCHAR(128) NULL');
         await addColumnIfMissing(tempConn, table, 'industry', 'VARCHAR(128) NULL');
+        await addColumnIfMissing(tempConn, table, 'admin_comment', 'TEXT NULL');
       }
 
       await addUniqueConstraintIfMissing(tempConn, 'product_replacement', 'uq_product_serial_number', 'serial_number');
@@ -261,7 +262,7 @@ const pool = mysql.createPool({
 });
 
 // Trigger database check immediately upon loading module
-ensureDatabaseAndSchema().catch(() => {});
+ensureDatabaseAndSchema().catch(() => { });
 
 // Intercept pool.query to ensure database exists before running queries
 const originalQuery = pool.query.bind(pool);

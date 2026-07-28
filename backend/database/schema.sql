@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS product_replacement (
   bse_name            VARCHAR(128) NULL,       -- BSE Name
   industry            VARCHAR(128) NULL,       -- Industry
   ageing_days         INT NULL,                -- DOC - DOI in days
+  admin_comment       TEXT NULL,               -- Admin comment
   raw_payload         JSON NULL,               -- original row snapshot for audit/debug
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -89,6 +90,7 @@ CREATE TABLE IF NOT EXISTS part_replacement (
   rej_qty             INT DEFAULT 0,
   type_of_damage      VARCHAR(64)  NULL,
   ageing_days         INT NULL,
+  admin_comment       TEXT NULL,
   raw_payload         JSON NULL,
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

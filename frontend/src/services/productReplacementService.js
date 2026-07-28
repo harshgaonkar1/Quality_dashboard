@@ -27,3 +27,8 @@ export function fetchDashboardDetails(params) {
 export function fetchDetailsForExport(params) {
   return api.get('/product/details', { params: { ...params, export: 'csv' } });
 }
+
+/** Saves an admin comment for a product replacement row by serialNumber. */
+export function saveProductComment(serialNumber, comment) {
+  return api.post('/product/comment', { serialNumber, comment });
+}

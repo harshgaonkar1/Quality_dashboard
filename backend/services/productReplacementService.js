@@ -13,8 +13,12 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  * Builds the summary card payload: one entry per ageing bucket,
  * each with its label and count.
  */
-async function getDashboardSummary({ typeOfDamage = '', productCategory = '' } = {}) {
-  const counts = await productReplacementModel.getSummaryCounts({ typeOfDamage, productCategory });
+/**
+ * Builds the summary card payload: one entry per ageing bucket,
+ * each with its label and count.
+ */
+async function getDashboardSummary({ typeOfDamage = '', productCategory = '', date = '' } = {}) {
+  const counts = await productReplacementModel.getSummaryCounts({ typeOfDamage, productCategory, date });
 
   const cards = [
     {
@@ -72,7 +76,7 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '' } =
  * Fetches the paginated detail rows for a given ageing category (optional),
  * enriching each row with its human-readable ageing category label.
  */
-async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, typeOfDamage, productCategory }) {
+async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, typeOfDamage, productCategory, date }) {
   let ageingMin = null;
   let ageingMax = null;
 
@@ -88,7 +92,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
   }
 
   const result = await productReplacementModel.getDetails({
-    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, typeOfDamage, productCategory,
+    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, typeOfDamage, productCategory, date,
   });
 
   const enrichedRows = result.rows.map((row) => ({
@@ -102,7 +106,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
 /**
  * Fetches ALL matching rows (no pagination) for CSV export, with ageing labels attached.
  */
-async function getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory }) {
+async function getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory, date }) {
   let ageingMin = null;
   let ageingMax = null;
 
@@ -114,11 +118,16 @@ async function getDetailsForExport({ ageingCategory, search, typeOfDamage, produ
     }
   }
 
-  const rows = await productReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, typeOfDamage, productCategory });
+  const rows = await productReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, typeOfDamage, productCategory, date });
   return rows.map((row) => ({
     ...row,
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',
   }));
 }
 
-module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, AGEING_CATEGORIES };
+/** Updates comment for a record by serial_number. */
+async function updateComment(serialNumber, comment) {
+  return productReplacementModel.updateComment(serialNumber, comment);
+}
+
+module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, updateComment, AGEING_CATEGORIES };

@@ -16,6 +16,7 @@ const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const uploadRoutes = require('./routes/uploadRoutes');
 const productReplacementRoutes = require('./routes/productReplacementRoutes');
 const partReplacementRoutes = require('./routes/partReplacementRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', uploadRoutes);
 app.use('/api/product', productReplacementRoutes);
 app.use('/api/part', partReplacementRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ---- 404 + Error Handling (must be last) ----
 app.use(notFoundHandler);

@@ -14,8 +14,8 @@ const { success, error } = require('../utils/responseHandler');
  */
 async function getDashboard(req, res, next) {
   try {
-    const { productCategory = '', subCategory = '' } = req.query;
-    const summary = await partReplacementService.getDashboardSummary({ productCategory, subCategory });
+    const { productCategory = '', subCategory = '', date = '' } = req.query;
+    const summary = await partReplacementService.getDashboardSummary({ productCategory, subCategory, date });
     return success(res, summary, 'Part replacement summary fetched successfully');
   } catch (err) {
     next(err);
@@ -27,6 +27,7 @@ async function getDashboard(req, res, next) {
  * Query params:
  *   ageingCategory   - optional key (e.g. '0-3-months')
  *   subCategory      - optional sub-category ('TL' | 'FL' | 'ALL')
+ *   date             - optional exact date filter (spu_created_date / doc)
  *   page             - page number
  *   pageSize         - rows per page
  *   search           - free-text search
@@ -40,6 +41,7 @@ async function getDetails(req, res, next) {
       ageingCategory = null,
       productCategory = '',
       subCategory = '',
+      date = '',
       page = 1,
       pageSize = 25,
       search = '',
@@ -49,7 +51,7 @@ async function getDetails(req, res, next) {
     } = req.query;
 
     if (exportFlag === 'csv') {
-      const rows = await partReplacementService.getDetailsForExport({ ageingCategory, search, productCategory, subCategory });
+      const rows = await partReplacementService.getDetailsForExport({ ageingCategory, search, productCategory, subCategory, date });
       return success(res, { rows }, 'Export data fetched successfully');
     }
 
@@ -57,6 +59,7 @@ async function getDetails(req, res, next) {
       ageingCategory,
       productCategory,
       subCategory,
+      date,
       page: Number(page),
       pageSize: Number(pageSize),
       search,
@@ -71,4 +74,21 @@ async function getDetails(req, res, next) {
   }
 }
 
-module.exports = { getDashboard, getDetails };
+/**
+ * POST /api/part/comment
+ * Expects JSON body: { serialNumber: string, comment: string }
+ */
+async function saveComment(req, res, next) {
+  try {
+    const { serialNumber, comment } = req.body;
+    if (!serialNumber) {
+      return error(res, 'Serial number is required', 400);
+    }
+    const updated = await partReplacementService.updateComment(serialNumber, comment ?? '');
+    return success(res, { updated }, 'Comment saved successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getDashboard, getDetails, saveComment };

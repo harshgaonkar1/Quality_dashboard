@@ -26,9 +26,9 @@ const BASE_WHERE = `
 const BASE_PARAMS = [...ALLOWED_STATUS, ...ALLOWED_MAT_CAT, ...ALLOWED_MACHINE_STATUS];
 
 /**
- * Builds standard WHERE clause incorporating optional damage type, product category, ageing range, and search.
+ * Builds standard WHERE clause incorporating optional damage type, product category, ageing range, single date, and search.
  */
-function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '' } = {}) {
+function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '', date = '' } = {}) {
   let whereClause = BASE_WHERE;
   const params = [...BASE_PARAMS];
 
@@ -46,6 +46,11 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
     }
   }
 
+  if (date) {
+    whereClause += ' AND (DATE(zmac_date) = ? OR (zmac_date IS NULL AND DATE(doc) = ?))';
+    params.push(date, date);
+  }
+
   if (ageingMin !== null && ageingMax !== null) {
     if (ageingMin === 0 && ageingMax === 90) {
       whereClause += ' AND (ageing_days BETWEEN ? AND ? OR ageing_days IS NULL OR ageing_days < 0)';
@@ -56,7 +61,7 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
   }
 
   if (search) {
-    whereClause += ' AND (complaint_number LIKE ? OR model LIKE ? OR serial_number LIKE ? OR branch LIKE ? OR mat_cat LIKE ? OR machine_status LIKE ? OR part_code LIKE ? OR part_description LIKE ? OR survey_origin LIKE ? OR customer_complaint LIKE ? OR customer_first_name LIKE ? OR city LIKE ? OR franchisee_name LIKE ? OR technician_name LIKE ? OR dealer_name LIKE ?)';
+    whereClause += ' AND (complaint_number LIKE ? OR zmac_id LIKE ? OR branch LIKE ? OR ticket_no LIKE ? OR machine_status LIKE ? OR model LIKE ? OR serial_number LIKE ? OR part_code LIKE ? OR part_description LIKE ? OR customer_complaint LIKE ? OR dealer_name LIKE ? OR bse_name LIKE ? OR industry LIKE ? OR survey_origin LIKE ? OR type_of_damage LIKE ?)';
     const like = `%${search}%`;
     params.push(like, like, like, like, like, like, like, like, like, like, like, like, like, like, like);
   }
@@ -66,10 +71,10 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
 
 /**
  * Returns ageing-bucket counts and TL/FL bifurcation for the summary cards,
- * respecting the FD ZBRN STATUS, damage type, and product category filters.
+ * respecting the FD ZBRN STATUS, damage type, product category, and single date filters.
  */
-async function getSummaryCounts({ typeOfDamage = '', productCategory = '' } = {}) {
-  const { whereClause, params } = buildWhereClause({ typeOfDamage, productCategory });
+async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date = '' } = {}) {
+  const { whereClause, params } = buildWhereClause({ typeOfDamage, productCategory, date });
   const [rows] = await pool.query(
     `SELECT
         SUM(CASE WHEN ageing_days IS NULL OR ageing_days <= 90 THEN 1 ELSE 0 END) AS bucket_0_3_months,
@@ -119,6 +124,7 @@ async function getDetails({
   ageingMax = null,
   typeOfDamage = '',
   productCategory = '',
+  date = '',
 } = {}) {
   const allowedSortColumns = [
     'complaint_number', 'zmac_date', 'zmac_status', 'fd_zbrn_id', 'fd_zbrn_status', 'fd_zbrn_date',
@@ -131,7 +137,7 @@ async function getDetails({
   const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'doc';
   const safeSortDir = sortDir && sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory });
+  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, date });
 
   const offset = (page - 1) * pageSize;
 
@@ -147,7 +153,7 @@ async function getDetails({
             call_type, machine_status, dop, doi, technician_name, technician_no, mat_cat,
             product_id, model, serial_number, survey_origin, type_of_damage, customer_complaint,
             part_description, part_code, out_bound_del, out_bound_del_date, dealer_code, dealer_name,
-            bse_name, industry, ageing_days
+            bse_name, industry, ageing_days, admin_comment
      FROM product_replacement
      WHERE ${whereClause}
      ORDER BY ${safeSortBy} ${safeSortDir}
@@ -161,8 +167,8 @@ async function getDetails({
 /**
  * Returns ALL matching detail rows (no pagination) for CSV export.
  */
-async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '' } = {}) {
-  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory });
+async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '', date = '' } = {}) {
+  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, date });
 
   const [rows] = await pool.query(
     `SELECT complaint_number, zmac_date, zmac_status, fd_zbrn_id, fd_zbrn_status, fd_zbrn_date,
@@ -170,7 +176,7 @@ async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = 
             call_type, machine_status, dop, doi, technician_name, technician_no, mat_cat,
             product_id, model, serial_number, survey_origin, type_of_damage, customer_complaint,
             part_description, part_code, out_bound_del, out_bound_del_date, dealer_code, dealer_name,
-            bse_name, industry, ageing_days
+            bse_name, industry, ageing_days, admin_comment
      FROM product_replacement
      WHERE ${whereClause}
      ORDER BY doc DESC`,
@@ -179,4 +185,18 @@ async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = 
   return rows;
 }
 
-module.exports = { getSummaryCounts, getDetails, getDetailsForExport, ALLOWED_STATUS };
+/**
+ * Updates the admin_comment for a specific product replacement record by serial_number or complaint_number.
+ */
+async function updateComment(serialNumber, comment, complaintNumber = null) {
+  let query = 'UPDATE product_replacement SET admin_comment = ? WHERE serial_number = ?';
+  let param = serialNumber;
+  if (!param && complaintNumber) {
+    query = 'UPDATE product_replacement SET admin_comment = ? WHERE complaint_number = ?';
+    param = complaintNumber;
+  }
+  const [result] = await pool.query(query, [comment, param]);
+  return result.affectedRows > 0;
+}
+
+module.exports = { getSummaryCounts, getDetails, getDetailsForExport, updateComment, ALLOWED_STATUS };

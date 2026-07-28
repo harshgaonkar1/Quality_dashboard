@@ -35,7 +35,7 @@ export default function Sidebar({ open, onClose }) {
       >
         <div className="flex items-center gap-2.5 px-5 h-14 lg:h-16 border-b border-ink-800 shrink-0">
           <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-lg bg-signal flex items-center justify-center font-display font-bold text-ink-950 text-xs lg:text-sm">
-            QT
+            QA
           </div>
           <span className="font-display font-semibold text-white tracking-tight text-sm lg:text-base">Quality Dashboard</span>
         </div>

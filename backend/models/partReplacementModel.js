@@ -9,9 +9,9 @@
 const { pool } = require('../database/connection');
 
 /**
- * Builds standard WHERE clause incorporating optional damage type, sub category, ageing range, and search.
+ * Builds standard WHERE clause incorporating optional damage type, sub category, ageing range, single date, and search.
  */
-function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, productCategory = '', subCategory = '' } = {}) {
+function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, productCategory = '', subCategory = '', date = '' } = {}) {
   let whereClause = '1=1';
   const params = [];
 
@@ -23,6 +23,11 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, pro
     } else if (cat === 'FL') {
       whereClause += " AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL')))";
     }
+  }
+
+  if (date) {
+    whereClause += ' AND (DATE(spu_created_date) = ? OR (spu_created_date IS NULL AND DATE(doc) = ?))';
+    params.push(date, date);
   }
 
   if (ageingMin !== null && ageingMax !== null) {
@@ -46,8 +51,8 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, pro
 /**
  * Returns ageing-bucket counts and TL/FL bifurcation for Part Replacement summary cards.
  */
-async function getSummaryCounts({ typeOfDamage = '', productCategory = '', subCategory = '' } = {}) {
-  const { whereClause, params } = buildWhereClause({ typeOfDamage, productCategory, subCategory });
+async function getSummaryCounts({ typeOfDamage = '', productCategory = '', subCategory = '', date = '' } = {}) {
+  const { whereClause, params } = buildWhereClause({ typeOfDamage, productCategory, subCategory, date });
   const [rows] = await pool.query(
     `SELECT
         SUM(CASE WHEN ageing_days IS NULL OR ageing_days <= 90 THEN 1 ELSE 0 END) AS bucket_0_3_months,
@@ -98,6 +103,7 @@ async function getDetails({
   typeOfDamage = '',
   productCategory = '',
   subCategory = '',
+  date = '',
 } = {}) {
   const allowedSortColumns = [
     'branch', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
@@ -107,7 +113,7 @@ async function getDetails({
   const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'doc';
   const safeSortDir = sortDir && sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, subCategory });
+  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, subCategory, date });
   const offset = (page - 1) * pageSize;
 
   const [countRows] = await pool.query(
@@ -118,7 +124,7 @@ async function getDetails({
 
   const [rows] = await pool.query(
     `SELECT branch, spu_status, spu_created_date, doc, doi, dop, ticket_no, machine_status, model,
-            serial_number, item_code, description, problem_description, sub_category, ageing_days, complaint_number
+            serial_number, item_code, description, problem_description, sub_category, ageing_days, complaint_number, admin_comment
      FROM part_replacement
      WHERE ${whereClause}
      ORDER BY ${safeSortBy} ${safeSortDir}
@@ -132,12 +138,12 @@ async function getDetails({
 /**
  * Returns ALL matching detail rows (no pagination) for CSV export.
  */
-async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '', subCategory = '' } = {}) {
-  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, subCategory });
+async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '', subCategory = '', date = '' } = {}) {
+  const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, subCategory, date });
 
   const [rows] = await pool.query(
     `SELECT branch, spu_status, spu_created_date, doc, doi, dop, ticket_no, machine_status, model,
-            serial_number, item_code, description, problem_description, sub_category, ageing_days, complaint_number
+            serial_number, item_code, description, problem_description, sub_category, ageing_days, complaint_number, admin_comment
      FROM part_replacement
      WHERE ${whereClause}
      ORDER BY doc DESC`,
@@ -146,4 +152,21 @@ async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = 
   return rows;
 }
 
-module.exports = { getSummaryCounts, getDetails, getDetailsForExport };
+/**
+ * Updates the admin_comment for a specific part replacement record by serial_number, ticket_no, or complaint_number.
+ */
+async function updateComment(serialNumber, comment, ticketNo = null, complaintNumber = null) {
+  let query = 'UPDATE part_replacement SET admin_comment = ? WHERE serial_number = ?';
+  let param = serialNumber;
+  if (!param && ticketNo) {
+    query = 'UPDATE part_replacement SET admin_comment = ? WHERE ticket_no = ?';
+    param = ticketNo;
+  } else if (!param && complaintNumber) {
+    query = 'UPDATE part_replacement SET admin_comment = ? WHERE complaint_number = ?';
+    param = complaintNumber;
+  }
+  const [result] = await pool.query(query, [comment, param]);
+  return result.affectedRows > 0;
+}
+
+module.exports = { getSummaryCounts, getDetails, getDetailsForExport, updateComment };

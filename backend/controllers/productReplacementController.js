@@ -16,8 +16,8 @@ const { success, error } = require('../utils/responseHandler');
  */
 async function getDashboard(req, res, next) {
   try {
-    const { typeOfDamage = '', productCategory = '' } = req.query;
-    const summary = await productReplacementService.getDashboardSummary({ typeOfDamage, productCategory });
+    const { typeOfDamage = '', productCategory = '', date = '' } = req.query;
+    const summary = await productReplacementService.getDashboardSummary({ typeOfDamage, productCategory, date });
     return success(res, summary, 'Dashboard summary fetched successfully');
   } catch (err) {
     next(err);
@@ -30,6 +30,7 @@ async function getDashboard(req, res, next) {
  *   ageingCategory   - optional key (e.g. '0-3-months') to scope results to one card
  *   typeOfDamage     - optional damage type ('Functional' | 'Transit' | 'ALL')
  *   productCategory  - optional model category ('TL' | 'FL' | 'ALL')
+ *   date             - optional exact date filter (zmac_date / doc)
  *   page             - page number (default 1)
  *   pageSize         - rows per page (default 25)
  *   search           - free-text search across complaint number/model/serial
@@ -43,6 +44,7 @@ async function getDetails(req, res, next) {
       ageingCategory = null,
       typeOfDamage = '',
       productCategory = '',
+      date = '',
       page = 1,
       pageSize = 25,
       search = '',
@@ -52,7 +54,7 @@ async function getDetails(req, res, next) {
     } = req.query;
 
     if (exportFlag === 'csv') {
-      const rows = await productReplacementService.getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory });
+      const rows = await productReplacementService.getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory, date });
       return success(res, { rows }, 'Export data fetched successfully');
     }
 
@@ -60,6 +62,7 @@ async function getDetails(req, res, next) {
       ageingCategory,
       typeOfDamage,
       productCategory,
+      date,
       page: Number(page),
       pageSize: Number(pageSize),
       search,
@@ -74,4 +77,21 @@ async function getDetails(req, res, next) {
   }
 }
 
-module.exports = { getDashboard, getDetails };
+/**
+ * POST /api/product/comment
+ * Expects JSON body: { serialNumber: string, comment: string }
+ */
+async function saveComment(req, res, next) {
+  try {
+    const { serialNumber, comment } = req.body;
+    if (!serialNumber) {
+      return error(res, 'Serial number is required', 400);
+    }
+    const updated = await productReplacementService.updateComment(serialNumber, comment ?? '');
+    return success(res, { updated }, 'Comment saved successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getDashboard, getDetails, saveComment };

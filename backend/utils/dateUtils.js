@@ -26,12 +26,12 @@ function excelSerialToDate(serial) {
 function parseFlexibleDate(value) {
   if (value === null || value === undefined || value === '') return null;
 
-  // Already a JS Date (ExcelJS often returns these for date-formatted cells)
+  // Already a JS Date
   if (value instanceof Date && !isNaN(value.getTime())) {
     return value;
   }
 
-  // Excel serial number (e.g. 45292)
+  // Excel serial number
   if (typeof value === 'number' && isFinite(value)) {
     const date = excelSerialToDate(value);
     return isNaN(date.getTime()) ? null : date;
@@ -41,32 +41,91 @@ function parseFlexibleDate(value) {
     const trimmed = value.trim();
     if (!trimmed) return null;
 
-    // Try native parsing first (handles ISO strings, "Jan 01 2024", etc.)
-    const nativeAttempt = new Date(trimmed);
-    if (!isNaN(nativeAttempt.getTime())) return nativeAttempt;
+    // DD/MM/YYYY or DD-MM-YYYY
+    const ddMmYyyy = trimmed.match(
+      /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/
+    );
 
-    // Try DD-MMM-YYYY (e.g. "01-Jan-2024")
-    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const ddMmmYyyy = trimmed.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3,})[-\/\s](\d{2,4})$/);
-    if (ddMmmYyyy) {
-      const day = parseInt(ddMmmYyyy[1], 10);
-      const monthIndex = monthNames.indexOf(ddMmmYyyy[2].toLowerCase().slice(0, 3));
-      let year = parseInt(ddMmmYyyy[3], 10);
-      if (year < 100) year += 2000;
-      if (monthIndex >= 0) {
-        const d = new Date(Date.UTC(year, monthIndex, day));
-        if (!isNaN(d.getTime())) return d;
-      }
-    }
-
-    // Try DD-MM-YYYY or DD/MM/YYYY
-    const ddMmYyyy = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
     if (ddMmYyyy) {
       const day = parseInt(ddMmYyyy[1], 10);
       const month = parseInt(ddMmYyyy[2], 10) - 1;
       const year = parseInt(ddMmYyyy[3], 10);
+
       const d = new Date(Date.UTC(year, month, day));
-      if (!isNaN(d.getTime())) return d;
+
+      if (
+        d.getUTCFullYear() === year &&
+        d.getUTCMonth() === month &&
+        d.getUTCDate() === day
+      ) {
+        return d;
+      }
+
+      return null;
+    }
+
+    // DD-MMM-YYYY
+    const monthNames = [
+      'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+      'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+    ];
+
+    const ddMmmYyyy = trimmed.match(
+      /^(\d{1,2})[-\/\s]([A-Za-z]{3,})[-\/\s](\d{2,4})$/
+    );
+
+    if (ddMmmYyyy) {
+      const day = parseInt(ddMmmYyyy[1], 10);
+
+      const monthIndex = monthNames.indexOf(
+        ddMmmYyyy[2].toLowerCase().slice(0, 3)
+      );
+
+      let year = parseInt(ddMmmYyyy[3], 10);
+
+      if (year < 100) year += 2000;
+
+      if (monthIndex >= 0) {
+        const d = new Date(
+          Date.UTC(year, monthIndex, day)
+        );
+
+        if (
+          d.getUTCFullYear() === year &&
+          d.getUTCMonth() === monthIndex &&
+          d.getUTCDate() === day
+        ) {
+          return d;
+        }
+      }
+    }
+
+    // ISO YYYY-MM-DD
+    const iso = trimmed.match(
+      /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+    );
+
+    if (iso) {
+      const year = parseInt(iso[1], 10);
+      const month = parseInt(iso[2], 10) - 1;
+      const day = parseInt(iso[3], 10);
+
+      const d = new Date(Date.UTC(year, month, day));
+
+      if (
+        d.getUTCFullYear() === year &&
+        d.getUTCMonth() === month &&
+        d.getUTCDate() === day
+      ) {
+        return d;
+      }
+    }
+
+    // Native parsing only as final fallback
+    const nativeAttempt = new Date(trimmed);
+
+    if (!isNaN(nativeAttempt.getTime())) {
+      return nativeAttempt;
     }
   }
 

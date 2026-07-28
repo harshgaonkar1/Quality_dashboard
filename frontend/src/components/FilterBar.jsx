@@ -1,8 +1,8 @@
 // ============================================================
 // Filter Bar
 // ------------------------------------------------------------
-// Search input + active-scope indicator + CSV export trigger,
-// used above the details table.
+// Search input + active-scope indicator + Single Date Picker +
+// CSV export trigger, used above details tables & dashboards.
 // ============================================================
 
 export default function FilterBar({
@@ -14,6 +14,9 @@ export default function FilterBar({
   onProductCategoryChange,
   ageingCategory = '',
   onAgeingCategoryChange,
+  date = '',
+  onDateChange,
+  dateLabel = 'Filter Date',
   activeCategoryLabel,
   onClearCategory,
   onExport,
@@ -22,25 +25,51 @@ export default function FilterBar({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative">
-          <svg
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-mist-400"
-          >
-            <circle cx="8.5" cy="8.5" r="5.5" />
-            <path d="m17 17-3.8-3.8" strokeLinecap="round" />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search complaint, spare, description, etc."
-            className="input-field pl-9 w-full sm:w-72"
-          />
-        </div>
+        {onSearchChange && (
+          <div className="relative">
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-mist-400"
+            >
+              <circle cx="8.5" cy="8.5" r="5.5" />
+              <path d="m17 17-3.8-3.8" strokeLinecap="round" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search complaint, spare, description, etc."
+              className="input-field pl-9 w-full sm:w-64"
+            />
+          </div>
+        )}
+
+        {onDateChange && (
+          <div className="flex items-center gap-2 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="single-date-picker" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+              {dateLabel}:
+            </label>
+            <input
+              id="single-date-picker"
+              type="date"
+              value={date}
+              onChange={(e) => onDateChange(e.target.value)}
+              className="text-xs font-medium text-ink-900 bg-transparent border border-mist-300 rounded px-2 py-1 focus:outline-none focus:border-signal cursor-pointer"
+            />
+            {date && (
+              <button
+                onClick={() => onDateChange('')}
+                className="text-xs text-ink-500 hover:text-ink-950 font-bold px-1"
+                title="Clear date filter"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
 
         {onDamageTypeChange && (
           <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
@@ -114,13 +143,15 @@ export default function FilterBar({
         )}
       </div>
 
-      <button onClick={onExport} disabled={exporting} className="btn-secondary shrink-0">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" className="w-4 h-4">
-          <path d="M10 3v9M6.5 8.5 10 12l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M4 15.5h12" strokeLinecap="round" />
-        </svg>
-        {exporting ? 'Exporting…' : 'Export CSV'}
-      </button>
+      {onExport && (
+        <button onClick={onExport} disabled={exporting} className="btn-secondary shrink-0">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" className="w-4 h-4">
+            <path d="M10 3v9M6.5 8.5 10 12l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 15.5h12" strokeLinecap="round" />
+          </svg>
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
+      )}
     </div>
   );
 }
