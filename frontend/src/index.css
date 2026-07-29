@@ -44,13 +44,18 @@ html.admin-mode,
 html.admin-mode body {
   background-color: #000000 !important;
   color: #4ade80 !important;
+  font-family: 'JetBrains Mono', 'Sora', monospace, system-ui !important;
 }
 
 html.admin-mode .panel,
-html.admin-mode .bg-white {
-  background-color: #0a0a0a !important;
+html.admin-mode .bg-white,
+html.admin-mode .bg-mist-100,
+html.admin-mode .bg-mist-100\/60,
+html.admin-mode .bg-mist-200,
+html.admin-mode .bg-mist-200\/60 {
+  background-color: #050505 !important;
   color: #4ade80 !important;
-  border-color: rgba(34, 197, 94, 0.3) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
 }
 
 html.admin-mode .text-ink-950,
@@ -58,19 +63,39 @@ html.admin-mode .text-ink-900,
 html.admin-mode .text-ink-800,
 html.admin-mode .text-ink-700,
 html.admin-mode .text-ink-600,
-html.admin-mode .text-ink-500 {
+html.admin-mode .text-ink-500,
+html.admin-mode .text-ink-400,
+html.admin-mode .text-mist-400 {
   color: #4ade80 !important;
 }
 
 html.admin-mode .border-mist-200,
-html.admin-mode .border-mist-300 {
+html.admin-mode .border-mist-300,
+html.admin-mode .border-ink-800 {
   border-color: rgba(34, 197, 94, 0.3) !important;
 }
 
+html.admin-mode .btn-primary {
+  background-color: #22c55e !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  border-color: #4ade80 !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.3) !important;
+}
+
+html.admin-mode .btn-primary:hover {
+  background-color: #4ade80 !important;
+  color: #000000 !important;
+}
+
 html.admin-mode .btn-secondary {
-  background-color: #0d170e !important;
+  background-color: #0b1a0e !important;
   color: #4ade80 !important;
   border-color: rgba(34, 197, 94, 0.5) !important;
+}
+
+html.admin-mode .btn-secondary:hover {
+  background-color: #122b17 !important;
 }
 
 html.admin-mode .input-field,
@@ -80,4 +105,54 @@ html.admin-mode input {
   color: #4ade80 !important;
   border-color: rgba(34, 197, 94, 0.5) !important;
 }
+
+html.admin-mode option {
+  background-color: #050505 !important;
+  color: #4ade80 !important;
+}
+
+/* Sidebar in Admin Mode */
+html.admin-mode aside {
+  background-color: #020202 !important;
+  border-right: 1px solid rgba(34, 197, 94, 0.3) !important;
+}
+
+html.admin-mode aside nav a {
+  color: #4ade80 !important;
+}
+
+html.admin-mode aside nav a:hover {
+  background-color: #0d2613 !important;
+  color: #86efac !important;
+}
+
+html.admin-mode aside nav a.bg-ink-800 {
+  background-color: #12381b !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+/* Tables in Admin Mode */
+html.admin-mode table thead tr {
+  background-color: #091c0e !important;
+  border-bottom: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+html.admin-mode table thead th {
+  color: #4ade80 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+html.admin-mode table tbody tr {
+  border-bottom: 1px solid rgba(34, 197, 94, 0.2) !important;
+}
+
+html.admin-mode table tbody tr:hover {
+  background-color: #0b2411 !important;
+}
+
+html.admin-mode table td {
+  color: #86efac !important;
+}
+
 
