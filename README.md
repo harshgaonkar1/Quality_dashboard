@@ -2,13 +2,13 @@
 
 Enterprise internal dashboard for tracking Product Replacement (and Part
 Replacement) complaint ageing. Data is loaded from Excel initially; the
-dashboard itself **only ever reads from MySQL**.
+dashboard itself **only ever reads from Supabase PostgreSQL**.
 
 ## Stack
 
 - **Frontend:** React (Vite), Tailwind CSS, React Router, Axios, Highcharts, React Hook Form
-- **Backend:** Node.js, Express, Multer, mysql2, ExcelJS
-- **Database:** MySQL
+- **Backend:** Node.js, Express, Multer, pg (node-postgres), ExcelJS
+- **Database:** Supabase PostgreSQL
 
 ## Project Structure
 
@@ -19,8 +19,8 @@ dashboard-app/
 │   ├── controllers/     # Request handling, thin orchestration
 │   ├── services/        # Business logic (Excel parsing, ageing calc, persistence)
 │   ├── middlewares/      # Multer config, validation, error handling
-│   ├── database/        # MySQL connection + schema.sql
-│   ├── models/           # Repository-pattern data access (raw SQL)
+│   ├── database/        # Supabase PostgreSQL connection + schema.sql
+│   ├── models/           # Repository-pattern data access (parameterized SQL)
 │   ├── uploads/          # Temp storage for uploaded Excel files
 │   └── utils/            # Date parsing, ageing bucketing, response helpers
 └── frontend/
@@ -35,17 +35,30 @@ dashboard-app/
 
 ## Setup
 
-### 1. Database
+### 1. Database (Supabase PostgreSQL)
 
-```bash
-mysql -u root -p < backend/database/schema.sql
+Configure your Supabase PostgreSQL credentials in `backend/.env`:
+
+```env
+# Full Connection String (Recommended for Supabase)
+SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres?sslmode=require
+
+# OR individual parameters
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=dashboard_db
+DB_SSL=true
 ```
+
+Schema tables and column migrations are created automatically upon application startup.
+Alternatively, you can manually run `backend/database/schema.sql` in your Supabase SQL Editor.
 
 ### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env   # then edit DB credentials
 npm install
 npm run dev             # nodemon, http://localhost:5000
 ```
@@ -54,7 +67,6 @@ npm run dev             # nodemon, http://localhost:5000
 
 ```bash
 cd frontend
-cp .env.example .env
 npm install
 npm run dev             # http://localhost:5173
 ```
@@ -66,6 +78,8 @@ npm run dev             # http://localhost:5173
 | POST | `/api/upload` | Multipart upload of `productReplacement` and/or `partReplacement` Excel files |
 | GET | `/api/product/dashboard` | Summary counts per ageing bucket |
 | GET | `/api/product/details` | Paginated/searchable/sortable detail rows. Query params: `ageingCategory`, `page`, `pageSize`, `search`, `sortBy`, `sortDir`, `export=csv` |
+| GET | `/api/part/dashboard` | Summary counts per ageing bucket for Part Replacement |
+| GET | `/api/part/details` | Paginated/searchable/sortable detail rows for Part Replacement |
 | GET | `/api/health` | Health check |
 
 ## Business Rules Implemented
@@ -76,18 +90,7 @@ npm run dev             # http://localhost:5173
   - `TYPE OF DAMAGE` = `Functional`
 - Ageing buckets: 0-3 Months (0-90d), 1 Year (91-365d), 2 Year (366-730d),
   3 Year (731-1095d), 4 Year (1096-1460d), More than 4 Years (1461d+).
-- Duplicate Complaint Numbers are never inserted (`INSERT IGNORE` + unique
-  constraint on `complaint_number`, plus in-file dedupe before insert).
+- Duplicate Serial Numbers are never inserted (`ON CONFLICT (serial_number) DO NOTHING` + unique
+  constraint on `serial_number`, plus in-file dedupe before insert).
 - Invalid/missing dates and empty rows are skipped and reported back in the
   upload response (`skippedDetails`) and logged to `upload_logs`.
-
-## Notes on Extending
-
-- **Part Replacement**: the `part_replacement` table, upload pipeline, and
-  API convention already exist. Build out `partReplacementModel.js` /
-  `Service` / `Controller` / `Routes` mirroring the Product Replacement
-  files, then flesh out `PartReplacementDashboard` + `Details` pages the
-  same way `ProductReplacement.jsx` / `ProductReplacementDetails.jsx` are built.
-- **Removing Excel upload later**: simply stop mounting `uploadRoutes` in
-  `server.js` and remove the Upload page/link — no other code changes
-  needed, since every dashboard read already goes through MySQL only.

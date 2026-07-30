@@ -1,76 +1,77 @@
 -- ============================================================
--- ENTERPRISE DASHBOARD - MYSQL SCHEMA
+-- ENTERPRISE DASHBOARD - SUPABASE POSTGRESQL SCHEMA (SELF-HEALING)
 -- ============================================================
--- This schema supports two data domains: Product Replacement and
--- Part Replacement. Excel is only used as an initial data-loading
--- mechanism -- the application always reads from these tables.
+-- Run this script in Supabase Dashboard -> SQL Editor.
+-- Creates missing tables AND adds any missing columns automatically.
 -- ============================================================
-
--- Check if database 'dashboard_db' exists: create if not present, then select for use
-CREATE DATABASE IF NOT EXISTS dashboard_db
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE dashboard_db;
 
 -- ------------------------------------------------------------
 -- TABLE: product_replacement
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS product_replacement (
-  id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  complaint_number    VARCHAR(64)  NULL,       -- ZMAC ID
-  zmac_date           DATE NULL,               -- zmac date
-  zmac_status         VARCHAR(64)  NULL,       -- zmac status
-  fd_zbrn_id          VARCHAR(64)  NULL,       -- fd zbrn id
-  fd_zbrn_status      VARCHAR(64)  NULL,       -- fd zbrn status
-  fd_zbrn_date        DATE NULL,               -- fd zbrn date
-  customer_first_name VARCHAR(128) NULL,       -- customer first name
-  city                VARCHAR(128) NULL,       -- city
-  franchisee_id       VARCHAR(64)  NULL,       -- franchisee id
-  franchisee_name     VARCHAR(128) NULL,       -- franchisee name
-  branch              VARCHAR(128) NULL,       -- branch name
-  doc                 DATE NULL,               -- ticket posting date
-  ticket_no           VARCHAR(64)  NULL,       -- ticket no
-  call_type           VARCHAR(64)  NULL,       -- call type
-  machine_status      VARCHAR(64)  NULL,       -- machine status
-  dop                 DATE NULL,               -- dop
-  doi                 DATE NULL,               -- doi
-  technician_name     VARCHAR(128) NULL,       -- technician name
-  technician_no       VARCHAR(64)  NULL,       -- technician no
-  mat_cat             VARCHAR(64)  NULL,       -- mat cat
-  product_id          VARCHAR(64)  NULL,       -- product id
-  model               VARCHAR(255) NULL,       -- product description
-  serial_number       VARCHAR(128) NOT NULL,      -- serial number
-  survey_origin       VARCHAR(128) NULL,       -- survey origin
-  type_of_damage      VARCHAR(64)  NULL,       -- type of damage
-  customer_complaint  TEXT NULL,               -- customer complaint
-  part_description    VARCHAR(255) NULL,       -- spare desc
-  part_code           VARCHAR(128) NULL,       -- spare
-  out_bound_del       VARCHAR(128) NULL,       -- out bound del
-  out_bound_del_date  DATE NULL,               -- out bound del date
-  dealer_code         VARCHAR(64)  NULL,       -- dealer code
-  dealer_name         VARCHAR(128) NULL,       -- dealer name
-  bse_name            VARCHAR(128) NULL,       -- BSE Name
-  industry            VARCHAR(128) NULL,       -- Industry
-  ageing_days         INT NULL,                -- DOC - DOI in days
-  admin_comment       TEXT NULL,               -- Admin comment
-  raw_payload         JSON NULL,               -- original row snapshot for audit/debug
-  created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  complaint_number    VARCHAR(64)  NULL,
+  zmac_date           DATE NULL,
+  zmac_status         VARCHAR(64)  NULL,
+  fd_zbrn_id          VARCHAR(64)  NULL,
+  fd_zbrn_status      VARCHAR(64)  NULL,
+  fd_zbrn_date        DATE NULL,
+  customer_first_name VARCHAR(128) NULL,
+  city                VARCHAR(128) NULL,
+  franchisee_id       VARCHAR(64)  NULL,
+  franchisee_name     VARCHAR(128) NULL,
+  branch              VARCHAR(128) NULL,
+  doc                 DATE NULL,
+  ticket_no           VARCHAR(64)  NULL,
+  call_type           VARCHAR(64)  NULL,
+  machine_status      VARCHAR(64)  NULL,
+  dop                 DATE NULL,
+  doi                 DATE NULL,
+  technician_name     VARCHAR(128) NULL,
+  technician_no       VARCHAR(64)  NULL,
+  mat_cat             VARCHAR(64)  NULL,
+  product_id          VARCHAR(64)  NULL,
+  model               VARCHAR(255) NULL,
+  serial_number       VARCHAR(128) NOT NULL,
+  survey_origin       VARCHAR(128) NULL,
+  type_of_damage      VARCHAR(64)  NULL,
+  customer_complaint  TEXT NULL,
+  part_description    VARCHAR(255) NULL,
+  part_code           VARCHAR(128) NULL,
+  out_bound_del       VARCHAR(128) NULL,
+  out_bound_del_date  DATE NULL,
+  dealer_code         VARCHAR(64)  NULL,
+  dealer_name         VARCHAR(128) NULL,
+  bse_name            VARCHAR(128) NULL,
+  industry            VARCHAR(128) NULL,
+  ageing_days         INT NULL,
+  admin_comment       TEXT NULL,
+  raw_payload         JSONB NULL,
+  created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT uq_product_serial_number UNIQUE (serial_number),
-  INDEX idx_product_complaint_number (complaint_number),
-  INDEX idx_product_fd_zbrn_status (fd_zbrn_status),
-  INDEX idx_product_type_of_damage (type_of_damage),
-  INDEX idx_product_ageing_days (ageing_days),
-  INDEX idx_product_doc (doc)
-) ENGINE=InnoDB;
+  CONSTRAINT uq_product_serial_number UNIQUE (serial_number)
+);
+
+-- Ensure all columns are added if product_replacement already existed
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS ageing_days INT NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS admin_comment TEXT NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS raw_payload JSONB NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS fd_zbrn_status VARCHAR(64) NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS mat_cat VARCHAR(64) NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS machine_status VARCHAR(64) NULL;
+
+CREATE INDEX IF NOT EXISTS idx_product_complaint_number ON product_replacement (complaint_number);
+CREATE INDEX IF NOT EXISTS idx_product_fd_zbrn_status ON product_replacement (fd_zbrn_status);
+CREATE INDEX IF NOT EXISTS idx_product_type_of_damage ON product_replacement (type_of_damage);
+CREATE INDEX IF NOT EXISTS idx_product_ageing_days ON product_replacement (ageing_days);
+CREATE INDEX IF NOT EXISTS idx_product_doc ON product_replacement (doc);
 
 -- ------------------------------------------------------------
 -- TABLE: part_replacement
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS part_replacement (
-  id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   complaint_number    VARCHAR(64)  NULL,
   branch              VARCHAR(128) NULL,
   spu_status          VARCHAR(64)  NULL,
@@ -91,33 +92,40 @@ CREATE TABLE IF NOT EXISTS part_replacement (
   type_of_damage      VARCHAR(64)  NULL,
   ageing_days         INT NULL,
   admin_comment       TEXT NULL,
-  raw_payload         JSON NULL,
-  created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  raw_payload         JSONB NULL,
+  created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT uq_part_serial_number UNIQUE (serial_number),
-  INDEX idx_part_complaint_number (complaint_number),
-  INDEX idx_part_spu_status (spu_status),
-  INDEX idx_part_sub_category (sub_category),
-  INDEX idx_part_ageing_days (ageing_days),
-  INDEX idx_part_doc (doc)
-) ENGINE=InnoDB;
+  CONSTRAINT uq_part_serial_number UNIQUE (serial_number)
+);
+
+-- Ensure all columns are added if part_replacement already existed
+ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS ageing_days INT NULL;
+ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS admin_comment TEXT NULL;
+ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS raw_payload JSONB NULL;
+ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS sub_category VARCHAR(64) NULL;
+
+CREATE INDEX IF NOT EXISTS idx_part_complaint_number ON part_replacement (complaint_number);
+CREATE INDEX IF NOT EXISTS idx_part_spu_status ON part_replacement (spu_status);
+CREATE INDEX IF NOT EXISTS idx_part_sub_category ON part_replacement (sub_category);
+CREATE INDEX IF NOT EXISTS idx_part_ageing_days ON part_replacement (ageing_days);
+CREATE INDEX IF NOT EXISTS idx_part_doc ON part_replacement (doc);
 
 -- ------------------------------------------------------------
 -- TABLE: upload_logs
--- Keeps an audit trail of every Excel upload for traceability.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS upload_logs (
-  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  upload_type      ENUM('PRODUCT_REPLACEMENT', 'PART_REPLACEMENT') NOT NULL,
+  id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  upload_type      VARCHAR(64) NOT NULL CHECK (upload_type IN ('PRODUCT_REPLACEMENT', 'PART_REPLACEMENT')),
   file_name        VARCHAR(255) NOT NULL,
   total_rows       INT DEFAULT 0,
   inserted_rows    INT DEFAULT 0,
   skipped_rows     INT DEFAULT 0,
   duplicate_rows   INT DEFAULT 0,
   error_rows       INT DEFAULT 0,
-  status           ENUM('SUCCESS', 'PARTIAL', 'FAILED') DEFAULT 'SUCCESS',
-  error_details    JSON NULL,
-  created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_upload_logs_type (upload_type)
-) ENGINE=InnoDB;
+  status           VARCHAR(32) DEFAULT 'SUCCESS' CHECK (status IN ('SUCCESS', 'PARTIAL', 'FAILED')),
+  error_details    JSONB NULL,
+  created_at       TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_upload_logs_type ON upload_logs (upload_type);

@@ -133,7 +133,7 @@ function parseFlexibleDate(value) {
 }
 
 /**
- * Formats a Date object into 'YYYY-MM-DD' for MySQL DATE columns.
+ * Formats a Date object into 'YYYY-MM-DD' for SQL DATE columns.
  */
 function toMySQLDate(date) {
   if (!date || isNaN(date.getTime())) return null;
@@ -142,6 +142,8 @@ function toMySQLDate(date) {
   const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
+
+const toPostgresDate = toMySQLDate;
 
 /**
  * Calculates Ageing = DOC - DOI, expressed as a whole number of days.
@@ -158,5 +160,6 @@ function calculateAgeingDays(doiDate, docDate) {
 module.exports = {
   parseFlexibleDate,
   toMySQLDate,
+  toPostgresDate,
   calculateAgeingDays,
 };

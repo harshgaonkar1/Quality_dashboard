@@ -1,13 +1,12 @@
 // ============================================================
 // Upload Persistence Service
 // ------------------------------------------------------------
-// Handles batch-inserting processed records into either the
-// product_replacement or part_replacement table, using
-// "INSERT IGNORE" semantics so Complaint Numbers already present
-// in the database are silently skipped (never duplicated), and
-// logs the outcome of every upload to upload_logs for auditing.
+// Batch-inserts records into product_replacement or part_replacement
+// using Supabase JS client (or PG pool fallback) with ON CONFLICT
+// (serial_number) DO NOTHING semantics so duplicates are skipped.
 // ============================================================
 
+const { supabase } = require('../database/supabaseClient');
 const { pool } = require('../database/connection');
 
 const TABLE_CONFIG = {
@@ -35,9 +34,8 @@ const TABLE_CONFIG = {
 const BATCH_SIZE = 500;
 
 /**
- * Batch-inserts records into the target table in chunks, using
- * INSERT IGNORE to guarantee Complaint Number uniqueness at the DB layer
- * (belt-and-braces alongside the in-file dedupe done in ageingService).
+ * Batch-inserts records into the target table in chunks, guaranteeing
+ * Complaint/Serial Number uniqueness via ON CONFLICT DO NOTHING.
  *
  * @param {'PRODUCT_REPLACEMENT'|'PART_REPLACEMENT'} uploadType
  * @param {object[]} records
@@ -48,6 +46,38 @@ async function batchInsert(uploadType, records) {
   if (!config) throw new Error(`Unknown upload type: ${uploadType}`);
   if (records.length === 0) return { insertedRows: 0, duplicateRows: 0 };
 
+  if (supabase) {
+    let insertedRows = 0;
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+      const chunk = records.slice(i, i + BATCH_SIZE);
+      const cleanedChunk = chunk.map((record) => {
+        const row = {};
+        config.columns.forEach((col) => {
+          row[col] = record[col] ?? null;
+        });
+        return row;
+      });
+
+      const { data, error } = await supabase
+        .from(config.table)
+        .upsert(cleanedChunk, { onConflict: 'serial_number', ignoreDuplicates: true })
+        .select('id');
+
+      if (error) {
+        if (error.message.includes('schema cache') || error.message.includes('does not exist')) {
+          throw new Error(`Database Schema Error: Table or column missing in Supabase. Please run 'backend/database/schema.sql' in your Supabase SQL Editor. (${error.message})`);
+        }
+        throw new Error(`Supabase insert error: ${error.message}`);
+      }
+      const count = data ? data.length : chunk.length;
+      insertedRows += count;
+    }
+
+    const duplicateRows = records.length - insertedRows;
+    return { insertedRows, duplicateRows };
+  }
+
+  // Fallback to PG Pool if Supabase client is not configured
   const connection = await pool.getConnection();
   let insertedRows = 0;
   let duplicateRows = 0;
@@ -55,7 +85,7 @@ async function batchInsert(uploadType, records) {
   try {
     await connection.beginTransaction();
 
-    const columnList = config.columns.join(', ');
+    const columnList = config.columns.map((c) => `"${c}"`).join(', ');
     const placeholders = `(${config.columns.map(() => '?').join(', ')})`;
 
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
@@ -64,12 +94,13 @@ async function batchInsert(uploadType, records) {
       const flatParams = chunk.flatMap((record) => config.columns.map((col) => record[col] ?? null));
 
       const [result] = await connection.query(
-        `INSERT IGNORE INTO ${config.table} (${columnList}) VALUES ${valuesSql}`,
+        `INSERT INTO "${config.table}" (${columnList}) VALUES ${valuesSql} ON CONFLICT (serial_number) DO NOTHING`,
         flatParams
       );
 
-      insertedRows += result.affectedRows;
-      duplicateRows += chunk.length - result.affectedRows;
+      const affected = result ? result.affectedRows : 0;
+      insertedRows += affected;
+      duplicateRows += chunk.length - affected;
     }
 
     await connection.commit();
@@ -96,6 +127,24 @@ async function logUpload({
   status,
   errorDetails,
 }) {
+  if (supabase) {
+    const { error } = await supabase.from('upload_logs').insert([
+      {
+        upload_type: uploadType,
+        file_name: fileName,
+        total_rows: totalRows,
+        inserted_rows: insertedRows,
+        skipped_rows: skippedRows,
+        duplicate_rows: duplicateRows,
+        error_rows: errorRows,
+        status: status,
+        error_details: errorDetails || null,
+      },
+    ]);
+    if (error) console.error('⚠️ Failed to log upload to Supabase upload_logs:', error.message);
+    return;
+  }
+
   await pool.query(
     `INSERT INTO upload_logs
       (upload_type, file_name, total_rows, inserted_rows, skipped_rows, duplicate_rows, error_rows, status, error_details)

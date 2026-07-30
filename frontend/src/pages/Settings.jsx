@@ -21,10 +21,10 @@ export default function Settings() {
         <div className="flex items-center justify-between py-2">
           <div>
             <p className="text-sm font-medium text-ink-900">Data Source</p>
-            <p className="text-xs text-ink-500">All dashboard reads come from MySQL</p>
+            <p className="text-xs text-ink-500">All dashboard reads come from Supabase PostgreSQL</p>
           </div>
           <span className="text-xs font-semibold bg-signal/10 text-signal-dark px-2.5 py-1 rounded-full">
-            MySQL
+            Supabase PostgreSQL
           </span>
         </div>
       </div>
