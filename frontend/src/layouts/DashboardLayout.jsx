@@ -89,18 +89,18 @@ export default function DashboardLayout() {
 
             {isAdmin ? (
               <div className="flex items-center gap-2.5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-bold font-mono animate-pulse">
-                  <span>⚡</span> ADMIN MODE ACTIVE
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-950/80 border border-green-500/60 text-green-400 text-xs font-bold font-mono animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.3)]">
+                  <span>⚡</span> SYSTEM_ADMIN://ROOT_ACCESS
                 </span>
                 <button
                   onClick={logoutAdmin}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-red-300 transition-all shadow-xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold font-mono rounded-lg bg-red-950/90 hover:bg-red-900 border border-red-500/60 text-red-300 transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)] cursor-pointer"
                   title="Logout from Admin Mode"
                 >
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
                     <path d="M13 15l4-4-4-4M17 11H7M10 3H5a2 2 0 00-2 2v10a2 2 0 022 2h5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  Logout Admin
+                  Exit Admin
                 </button>
               </div>
             ) : (

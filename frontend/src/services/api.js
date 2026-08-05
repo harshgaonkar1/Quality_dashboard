@@ -15,6 +15,15 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Attaches admin password header if user is authenticated in Admin mode
+api.interceptors.request.use((config) => {
+  const adminPassword = localStorage.getItem('admin_password');
+  if (adminPassword) {
+    config.headers['x-admin-password'] = adminPassword;
+  }
+  return config;
+});
+
 // Unwraps the { success, message, data } envelope and normalizes errors
 // into a plain Error with a readable message, so calling code can just
 // `try { const data = await someService(); } catch (err) { err.message }`.

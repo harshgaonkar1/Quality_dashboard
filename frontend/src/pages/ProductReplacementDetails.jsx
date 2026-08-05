@@ -34,6 +34,7 @@ function RemarksCell({ row, isAdmin, openAdminModal }) {
   const [comment, setComment] = useState(row.admin_comment || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     setComment(row.admin_comment || '');
@@ -45,6 +46,7 @@ function RemarksCell({ row, isAdmin, openAdminModal }) {
       return;
     }
     setSaving(true);
+    setErrorMsg('');
     try {
       await saveProductComment(row.serial_number || row.complaint_number, comment);
       row.admin_comment = comment;
@@ -52,43 +54,59 @@ function RemarksCell({ row, isAdmin, openAdminModal }) {
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       console.error('Failed to save remark:', e);
+      setErrorMsg('Failed');
+      setTimeout(() => setErrorMsg(''), 3000);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
   if (!isAdmin) {
     return (
-      <div className="flex items-center gap-2 min-w-[180px]">
-        <span className="text-xs font-mono text-ink-800 dark:text-green-300 truncate max-w-[200px]" title={row.admin_comment || 'No remarks'}>
-          {row.admin_comment ? row.admin_comment : <span className="text-mist-400 italic">No remarks</span>}
+      <div className="flex items-center justify-between gap-2 min-w-[200px] px-2 py-1 rounded bg-mist-100/50 dark:bg-ink-950/40 border border-mist-200/60 dark:border-ink-800">
+        <span className="text-xs font-mono text-ink-800 dark:text-mist-200 truncate max-w-[160px]" title={row.admin_comment || 'No remarks recorded'}>
+          {row.admin_comment ? row.admin_comment : <span className="text-mist-400 italic text-[11px]">No remarks</span>}
         </span>
         <button
           onClick={openAdminModal}
-          title="Login to Admin to edit remarks"
-          className="text-mist-400 hover:text-signal text-xs p-0.5 transition-colors opacity-70 hover:opacity-100 shrink-0"
+          title="Login as Admin to edit remarks"
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-signal-dark dark:text-signal hover:underline px-1.5 py-0.5 rounded bg-signal/10 dark:bg-signal/20 shrink-0 cursor-pointer"
         >
-          🔒
+          🔒 Edit
         </button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1.5 min-w-[220px]">
+    <div className="flex items-center gap-1.5 min-w-[240px]">
       <input
         type="text"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Enter remark..."
-        className="text-xs px-2.5 py-1.5 rounded border border-green-500/50 bg-black text-green-400 placeholder-green-800 focus:outline-none focus:border-green-400 w-full font-mono transition-all"
+        onKeyDown={handleKeyDown}
+        placeholder="Enter remark (press Enter to save)..."
+        className="text-xs px-2.5 py-1.5 rounded border border-green-500/60 bg-black text-green-400 placeholder-green-800 focus:outline-none focus:border-green-400 w-full font-mono transition-all"
       />
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-3 py-1.5 text-xs font-bold rounded shrink-0 transition-all bg-green-500 hover:bg-green-400 text-black shadow-xs disabled:opacity-50"
+        className={`px-3 py-1.5 text-xs font-bold rounded shrink-0 transition-all cursor-pointer ${
+          saved
+            ? 'bg-green-400 text-black'
+            : errorMsg
+            ? 'bg-red-500 text-white'
+            : 'bg-green-500 hover:bg-green-400 text-black shadow-xs disabled:opacity-50'
+        }`}
       >
-        {saving ? '...' : saved ? '✓ Saved' : 'Save'}
+        {saving ? '...' : saved ? '✓ Saved' : errorMsg ? '⚠️ Error' : 'Save'}
       </button>
     </div>
   );

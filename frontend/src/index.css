@@ -38,109 +38,151 @@
 }
 
 /* ============================================================
-   ADMIN MODE DARK/GREEN MATRIX THEME OVERRIDES
+   ADMIN MODE HACKER / MATRIX THEME OVERRIDES
    ============================================================ */
 html.admin-mode,
 html.admin-mode body {
-  background-color: #000000 !important;
+  background-color: #020603 !important;
+  background-image: 
+    radial-gradient(rgba(34, 197, 94, 0.12) 1px, transparent 0),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.4) 51%) !important;
+  background-size: 24px 24px, 100% 4px !important;
   color: #4ade80 !important;
   font-family: 'JetBrains Mono', 'Sora', monospace, system-ui !important;
 }
 
+/* Force all panel containers, background utilities, and dark-mode overrides in Admin Mode */
 html.admin-mode .panel,
-html.admin-mode .bg-white,
-html.admin-mode .bg-mist-100,
-html.admin-mode .bg-mist-100\/60,
-html.admin-mode .bg-mist-200,
-html.admin-mode .bg-mist-200\/60 {
-  background-color: #050505 !important;
+html.admin-mode [class*="bg-"],
+html.admin-mode [class*="dark:bg-"] {
+  background-color: #040d06 !important;
   color: #4ade80 !important;
   border-color: rgba(34, 197, 94, 0.35) !important;
 }
 
-html.admin-mode .text-ink-950,
-html.admin-mode .text-ink-900,
-html.admin-mode .text-ink-800,
-html.admin-mode .text-ink-700,
-html.admin-mode .text-ink-600,
-html.admin-mode .text-ink-500,
-html.admin-mode .text-ink-400,
-html.admin-mode .text-mist-400 {
+html.admin-mode .panel {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.15), inset 0 0 10px rgba(34, 197, 94, 0.05) !important;
+}
+
+/* Text color overrides */
+html.admin-mode [class*="text-"],
+html.admin-mode [class*="dark:text-"],
+html.admin-mode h1,
+html.admin-mode h2,
+html.admin-mode h3,
+html.admin-mode h4,
+html.admin-mode p,
+html.admin-mode span,
+html.admin-mode label {
   color: #4ade80 !important;
+  font-family: 'JetBrains Mono', monospace !important;
 }
 
-html.admin-mode .border-mist-200,
-html.admin-mode .border-mist-300,
-html.admin-mode .border-ink-800 {
-  border-color: rgba(34, 197, 94, 0.3) !important;
+html.admin-mode h1,
+html.admin-mode h2,
+html.admin-mode h3 {
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.4) !important;
 }
 
+/* Border overrides */
+html.admin-mode [class*="border-"],
+html.admin-mode [class*="dark:border-"] {
+  border-color: rgba(34, 197, 94, 0.35) !important;
+}
+
+/* Primary Button in Admin Mode */
 html.admin-mode .btn-primary {
   background-color: #22c55e !important;
   color: #000000 !important;
-  font-weight: 700 !important;
-  border-color: #4ade80 !important;
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.3) !important;
+  font-weight: 800 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  border: 1px solid #4ade80 !important;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.5) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
 }
 
 html.admin-mode .btn-primary:hover {
   background-color: #4ade80 !important;
   color: #000000 !important;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.7) !important;
 }
 
+/* Secondary Button in Admin Mode */
 html.admin-mode .btn-secondary {
-  background-color: #0b1a0e !important;
+  background-color: #08180c !important;
   color: #4ade80 !important;
-  border-color: rgba(34, 197, 94, 0.5) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  border: 1px solid rgba(34, 197, 94, 0.6) !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2) !important;
 }
 
 html.admin-mode .btn-secondary:hover {
-  background-color: #122b17 !important;
+  background-color: #0f2e17 !important;
+  color: #86efac !important;
+  border-color: #4ade80 !important;
 }
 
+/* Form Inputs & Selects in Admin Mode */
 html.admin-mode .input-field,
 html.admin-mode select,
-html.admin-mode input {
-  background-color: #000000 !important;
+html.admin-mode input,
+html.admin-mode textarea {
+  background-color: #010803 !important;
   color: #4ade80 !important;
-  border-color: rgba(34, 197, 94, 0.5) !important;
+  border: 1px solid rgba(34, 197, 94, 0.5) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+html.admin-mode .input-field:focus,
+html.admin-mode select:focus,
+html.admin-mode input:focus {
+  border-color: #4ade80 !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4) !important;
+  outline: none !important;
 }
 
 html.admin-mode option {
-  background-color: #050505 !important;
+  background-color: #020a04 !important;
   color: #4ade80 !important;
 }
 
 /* Sidebar in Admin Mode */
 html.admin-mode aside {
-  background-color: #020202 !important;
-  border-right: 1px solid rgba(34, 197, 94, 0.3) !important;
+  background-color: #010602 !important;
+  border-right: 1px solid rgba(34, 197, 94, 0.4) !important;
+  box-shadow: 5px 0 20px rgba(0, 0, 0, 0.8) !important;
 }
 
 html.admin-mode aside nav a {
   color: #4ade80 !important;
+  font-family: 'JetBrains Mono', monospace !important;
 }
 
 html.admin-mode aside nav a:hover {
-  background-color: #0d2613 !important;
+  background-color: #0d2a14 !important;
   color: #86efac !important;
 }
 
-html.admin-mode aside nav a.bg-ink-800 {
-  background-color: #12381b !important;
+html.admin-mode aside nav a.bg-ink-800,
+html.admin-mode aside nav a[class*="bg-"] {
+  background-color: #123d1c !important;
   color: #4ade80 !important;
-  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+  border: 1px solid rgba(34, 197, 94, 0.5) !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.25) !important;
 }
 
 /* Tables in Admin Mode */
 html.admin-mode table thead tr {
-  background-color: #091c0e !important;
-  border-bottom: 1px solid rgba(34, 197, 94, 0.4) !important;
+  background-color: #09210e !important;
+  border-bottom: 1px solid rgba(34, 197, 94, 0.5) !important;
 }
 
 html.admin-mode table thead th {
   color: #4ade80 !important;
   font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
 }
 
 html.admin-mode table tbody tr {
@@ -148,11 +190,19 @@ html.admin-mode table tbody tr {
 }
 
 html.admin-mode table tbody tr:hover {
-  background-color: #0b2411 !important;
+  background-color: #0b2e13 !important;
 }
 
 html.admin-mode table td {
   color: #86efac !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Badges & Status Indicators in Admin Mode */
+html.admin-mode [class*="badge"],
+html.admin-mode [class*="rounded-full"] {
+  border-color: rgba(34, 197, 94, 0.5) !important;
+  color: #4ade80 !important;
 }
 
 

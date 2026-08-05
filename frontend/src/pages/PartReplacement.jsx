@@ -48,7 +48,7 @@ export default function PartReplacement() {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 bg-white border border-mist-200 rounded-lg px-3 py-1.5 shadow-xs">
             <label htmlFor="part-sub-category-overview" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
-              Sub Category:
+              Model Type:
             </label>
             <select
               id="part-sub-category-overview"
@@ -57,8 +57,8 @@ export default function PartReplacement() {
               className="text-xs font-semibold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
             >
               <option value="">All Models</option>
-              <option value="TL">TL Models (TLU)</option>
-              <option value="FL">FL Models (FLU)</option>
+              <option value="TL">TL Models</option>
+              <option value="FL">FL Models</option>
             </select>
           </div>
 

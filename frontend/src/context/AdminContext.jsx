@@ -41,9 +41,10 @@ export function AdminProvider({ children }) {
     setErrorMsg('');
     try {
       const response = await api.post('/admin/verify-password', { password });
-      if (response.data?.success) {
+      if (response.data?.success || response.success) {
         setIsAdmin(true);
         localStorage.setItem('admin_mode_active', 'true');
+        localStorage.setItem('admin_password', password);
         closeAdminModal();
         return true;
       }
@@ -59,6 +60,7 @@ export function AdminProvider({ children }) {
   const logoutAdmin = () => {
     setIsAdmin(false);
     localStorage.removeItem('admin_mode_active');
+    localStorage.removeItem('admin_password');
   };
 
   return (
