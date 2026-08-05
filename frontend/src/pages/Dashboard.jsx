@@ -61,7 +61,7 @@ export default function Dashboard() {
         <div>
           <h2 className="font-display text-2xl font-bold text-ink-950 dark:text-mist-100">Quality Dashboard Overview</h2>
           <p className="text-ink-500 dark:text-mist-400 text-sm mt-1">
-            Live complaint ageing analytics for Product Replacement (ZMAC Date) and Part Replacement (SPU Created Date).
+            Live complaint ageing analytics for Product Replacement and Part Replacement.
           </p>
         </div>
 
