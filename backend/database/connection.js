@@ -3,9 +3,13 @@
 // ------------------------------------------------------------
 // Manages connectivity via official Supabase JS SDK (over HTTP)
 // or PostgreSQL connection pool (over TCP) when configured.
-// Automatically verifies and creates schema tables when possible.
+// Automatically verifies and creates schema tables when possible,
+// by executing the SQL directly from schema.sql (single source
+// of truth for table definitions).
 // ============================================================
 
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 const { supabase } = require('./supabaseClient');
 require('dotenv').config();
@@ -22,127 +26,31 @@ if (connectionString || (process.env.DB_PASSWORD && process.env.DB_PASSWORD !== 
       if (hostParts.length > 0 && hostParts[0]) {
         derivedHost = `db.${hostParts[0]}.supabase.co`;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
   const pgConfig = connectionString
     ? { connectionString, ssl: { rejectUnauthorized: false } }
     : {
-        host: derivedHost || 'localhost',
-        port: parseInt(process.env.DB_PORT, 10) || 5432,
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || '',
-        database: process.env.DB_NAME || 'postgres',
-        ssl: process.env.DB_SSL === 'true' || (derivedHost && derivedHost.includes('supabase.co')) ? { rejectUnauthorized: false } : false,
-        max: parseInt(process.env.DB_CONNECTION_LIMIT, 10) || 10,
-      };
+      host: derivedHost || 'localhost',
+      port: parseInt(process.env.DB_PORT, 10) || 5432,
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'postgres',
+      ssl: process.env.DB_SSL === 'true' || (derivedHost && derivedHost.includes('supabase.co')) ? { rejectUnauthorized: false } : false,
+      max: parseInt(process.env.DB_CONNECTION_LIMIT, 10) || 10,
+    };
   pool = new Pool(pgConfig);
 }
 
-const CREATE_PRODUCT_REPLACEMENT_TABLE = `
-CREATE TABLE IF NOT EXISTS product_replacement (
-  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  complaint_number    VARCHAR(64)  NULL,
-  zmac_date           DATE NULL,
-  zmac_status         VARCHAR(64)  NULL,
-  fd_zbrn_id          VARCHAR(64)  NULL,
-  fd_zbrn_status      VARCHAR(64)  NULL,
-  fd_zbrn_date        DATE NULL,
-  customer_first_name VARCHAR(128) NULL,
-  city                VARCHAR(128) NULL,
-  franchisee_id       VARCHAR(64)  NULL,
-  franchisee_name     VARCHAR(128) NULL,
-  branch              VARCHAR(128) NULL,
-  doc                 DATE NULL,
-  ticket_no           VARCHAR(64)  NULL,
-  call_type           VARCHAR(64)  NULL,
-  machine_status      VARCHAR(64)  NULL,
-  dop                 DATE NULL,
-  doi                 DATE NULL,
-  technician_name     VARCHAR(128) NULL,
-  technician_no       VARCHAR(64)  NULL,
-  mat_cat             VARCHAR(64)  NULL,
-  product_id          VARCHAR(64)  NULL,
-  model               VARCHAR(255) NULL,
-  serial_number       VARCHAR(128) NOT NULL,
-  survey_origin       VARCHAR(128) NULL,
-  type_of_damage      VARCHAR(64)  NULL,
-  customer_complaint  TEXT NULL,
-  part_description    VARCHAR(255) NULL,
-  part_code           VARCHAR(128) NULL,
-  out_bound_del       VARCHAR(128) NULL,
-  out_bound_del_date  DATE NULL,
-  dealer_code         VARCHAR(64)  NULL,
-  dealer_name         VARCHAR(128) NULL,
-  bse_name            VARCHAR(128) NULL,
-  industry            VARCHAR(128) NULL,
-  ageing_days         INT NULL,
-  admin_comment       TEXT NULL,
-  raw_payload         JSONB NULL,
-  created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-  updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT uq_product_serial_number UNIQUE (serial_number)
-);
+const SCHEMA_FILE_PATH = path.join(__dirname, 'schema.sql');
 
-CREATE INDEX IF NOT EXISTS idx_product_complaint_number ON product_replacement (complaint_number);
-CREATE INDEX IF NOT EXISTS idx_product_fd_zbrn_status ON product_replacement (fd_zbrn_status);
-CREATE INDEX IF NOT EXISTS idx_product_type_of_damage ON product_replacement (type_of_damage);
-CREATE INDEX IF NOT EXISTS idx_product_ageing_days ON product_replacement (ageing_days);
-CREATE INDEX IF NOT EXISTS idx_product_doc ON product_replacement (doc);
-`;
-
-const CREATE_PART_REPLACEMENT_TABLE = `
-CREATE TABLE IF NOT EXISTS part_replacement (
-  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  complaint_number    VARCHAR(64)  NULL,
-  branch              VARCHAR(128) NULL,
-  spu_status          VARCHAR(64)  NULL,
-  spu_created_date    DATE NULL,
-  doc                 DATE NULL,
-  doi                 DATE NULL,
-  dop                 DATE NULL,
-  ticket_no           VARCHAR(64)  NULL,
-  machine_status      VARCHAR(64)  NULL,
-  model               VARCHAR(255) NULL,
-  serial_number       VARCHAR(128) NOT NULL,
-  item_code           VARCHAR(128) NULL,
-  description         VARCHAR(255) NULL,
-  problem_description TEXT NULL,
-  product_category    VARCHAR(64)  NULL,
-  sub_category        VARCHAR(64)  NULL,
-  rej_qty             INT DEFAULT 0,
-  type_of_damage      VARCHAR(64)  NULL,
-  ageing_days         INT NULL,
-  admin_comment       TEXT NULL,
-  raw_payload         JSONB NULL,
-  created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-  updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT uq_part_serial_number UNIQUE (serial_number)
-);
-
-CREATE INDEX IF NOT EXISTS idx_part_complaint_number ON part_replacement (complaint_number);
-CREATE INDEX IF NOT EXISTS idx_part_spu_status ON part_replacement (spu_status);
-CREATE INDEX IF NOT EXISTS idx_part_sub_category ON part_replacement (sub_category);
-CREATE INDEX IF NOT EXISTS idx_part_ageing_days ON part_replacement (ageing_days);
-CREATE INDEX IF NOT EXISTS idx_part_doc ON part_replacement (doc);
-`;
-
-const CREATE_UPLOAD_LOGS_TABLE = `
-CREATE TABLE IF NOT EXISTS upload_logs (
-  id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  upload_type      VARCHAR(64) NOT NULL CHECK (upload_type IN ('PRODUCT_REPLACEMENT', 'PART_REPLACEMENT')),
-  file_name        VARCHAR(255) NOT NULL,
-  total_rows       INT DEFAULT 0,
-  inserted_rows    INT DEFAULT 0,
-  skipped_rows     INT DEFAULT 0,
-  duplicate_rows   INT DEFAULT 0,
-  error_rows       INT DEFAULT 0,
-  status           VARCHAR(32) DEFAULT 'SUCCESS' CHECK (status IN ('SUCCESS', 'PARTIAL', 'FAILED')),
-  error_details    JSONB NULL,
-  created_at       TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_upload_logs_type ON upload_logs (upload_type);
-`;
+/**
+ * Reads schema.sql from disk. Throws if the file is missing,
+ * so failures are explicit rather than silently skipping schema setup.
+ */
+function loadSchemaSql() {
+  return fs.readFileSync(SCHEMA_FILE_PATH, 'utf8');
+}
 
 let initPromise = null;
 
@@ -152,24 +60,38 @@ function convertPlaceholders(sql) {
   return sql.replace(/\?/g, () => `$${paramIndex++}`);
 }
 
+/**
+ * Executes schema.sql against the database, once, memoized via initPromise.
+ * Runs inside a transaction so a bad statement doesn't leave a half-applied schema.
+ */
 async function ensureDatabaseAndSchema() {
   if (!pool) return;
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
+    let client;
     try {
-      const client = await pool.connect();
+      client = await pool.connect();
+      const schemaSql = loadSchemaSql();
+
       try {
-        await client.query(CREATE_PRODUCT_REPLACEMENT_TABLE);
-        await client.query(CREATE_PART_REPLACEMENT_TABLE);
-        await client.query(CREATE_UPLOAD_LOGS_TABLE);
-        console.log('✅ Auto-created/verified schema tables in PostgreSQL');
-      } finally {
-        client.release();
+        await client.query('BEGIN');
+        await client.query(schemaSql);
+        await client.query('COMMIT');
+        console.log('✅ Auto-created/verified schema tables in PostgreSQL (from schema.sql)');
+      } catch (schemaErr) {
+        await client.query('ROLLBACK');
+        throw schemaErr;
       }
     } catch (err) {
       initPromise = null;
-      console.warn('⚠️ Auto-schema creation skipped (TCP connection unavailable):', err.message);
+      if (err.code === 'ENOENT') {
+        console.warn(`⚠️ Auto-schema creation skipped: schema.sql not found at ${SCHEMA_FILE_PATH}`);
+      } else {
+        console.warn('⚠️ Auto-schema creation skipped (TCP connection unavailable or query failed):', err.message);
+      }
+    } finally {
+      if (client) client.release();
     }
   })();
 
