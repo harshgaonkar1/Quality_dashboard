@@ -46,8 +46,8 @@ export default function UploadPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h2 className="font-display text-xl font-bold text-ink-950">Upload Data</h2>
-        <p className="text-sm text-ink-500 mt-1">
+        <h2 className="font-display text-xl font-bold text-ink-950 dark:text-mist-100">Upload Data</h2>
+        <p className="text-sm text-ink-500 dark:text-mist-400 mt-1">
           Parses Excel files using <strong>Serial Number</strong>. Part Replacement filters for <strong>SPU Status</strong> (ClosedByStoreExecutive), <strong>Machine Status</strong> (Warranty), <strong>Product Category</strong> (WM), <strong>Sub Category</strong> (TLU &rarr; TL, FLU &rarr; FL), <strong>Ageing</strong> (SPU Created Date &minus; DOI), and <strong>Rej Qty</strong> (0).
         </p>
       </div>
@@ -60,13 +60,13 @@ export default function UploadPage() {
 
         {uploading && (
           <div>
-            <div className="h-1.5 rounded-full bg-mist-200 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-mist-200 dark:bg-ink-800 overflow-hidden">
               <div
                 className="h-full bg-signal transition-all duration-200"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-ink-500 mt-1.5">Uploading… {progress}%</p>
+            <p className="text-xs text-ink-500 dark:text-mist-400 mt-1.5">Uploading… {progress}%</p>
           </div>
         )}
 
@@ -76,9 +76,9 @@ export default function UploadPage() {
       </form>
 
       {error && (
-        <div className="panel border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm font-semibold text-ink-900">Upload failed</p>
-          <p className="text-sm text-ink-600 mt-0.5">{error}</p>
+        <div className="panel border-danger/30 bg-danger/5 dark:bg-danger/10 p-5">
+          <p className="text-sm font-semibold text-ink-900 dark:text-mist-100">Upload failed</p>
+          <p className="text-sm text-ink-600 dark:text-mist-300 mt-0.5">{error}</p>
         </div>
       )}
 
@@ -87,22 +87,22 @@ export default function UploadPage() {
           {Object.entries(result).map(([key, summary]) => (
             <div key={key} className="panel p-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display font-semibold text-ink-950">{summary.fileName}</h3>
+                <h3 className="font-display font-semibold text-ink-950 dark:text-mist-100">{summary.fileName}</h3>
                 <StatusBadge status={summary.status} />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <Stat label="Total Rows" value={summary.totalRows} />
-                <Stat label="Inserted" value={summary.insertedRows} accent="text-signal-dark" />
-                <Stat label="Duplicates" value={summary.duplicateRows} accent="text-amber" />
-                <Stat label="Skipped/Errors" value={summary.skippedRows} accent="text-danger" />
+                <Stat label="Inserted" value={summary.insertedRows} accent="text-signal-dark dark:text-signal-light" />
+                <Stat label="Duplicates" value={summary.duplicateRows} accent="text-amber dark:text-amber-400" />
+                <Stat label="Skipped/Errors" value={summary.skippedRows} accent="text-danger dark:text-red-400" />
               </div>
 
               {summary.skippedDetails?.length > 0 && (
                 <details className="mt-4">
-                  <summary className="text-xs font-semibold text-ink-500 cursor-pointer">
+                  <summary className="text-xs font-semibold text-ink-500 dark:text-mist-400 cursor-pointer">
                     View skipped row details (sample)
                   </summary>
-                  <ul className="mt-2 space-y-1 text-xs text-ink-500 max-h-40 overflow-y-auto">
+                  <ul className="mt-2 space-y-1 text-xs text-ink-500 dark:text-mist-400 max-h-40 overflow-y-auto">
                     {summary.skippedDetails.map((d, i) => (
                       <li key={i}>
                         Row {d.rowNumber}: {d.reason} {d.complaintNumber ? `(${d.complaintNumber})` : ''}
@@ -119,10 +119,10 @@ export default function UploadPage() {
   );
 }
 
-function Stat({ label, value, accent = 'text-ink-900' }) {
+function Stat({ label, value, accent = 'text-ink-900 dark:text-mist-100' }) {
   return (
     <div>
-      <p className="text-xs text-ink-500">{label}</p>
+      <p className="text-xs text-ink-500 dark:text-mist-400">{label}</p>
       <p className={`text-lg font-display font-bold tabular-nums ${accent}`}>{value.toLocaleString()}</p>
     </div>
   );
@@ -130,12 +130,12 @@ function Stat({ label, value, accent = 'text-ink-900' }) {
 
 function StatusBadge({ status }) {
   const styles = {
-    SUCCESS: 'bg-signal/10 text-signal-dark',
-    PARTIAL: 'bg-amber/15 text-amber',
-    FAILED: 'bg-danger/10 text-danger',
+    SUCCESS: 'bg-signal/10 text-signal-dark dark:bg-signal/20 dark:text-signal-light',
+    PARTIAL: 'bg-amber/15 text-amber dark:bg-amber-500/20 dark:text-amber-400',
+    FAILED: 'bg-danger/10 text-danger dark:bg-danger/20 dark:text-red-400',
   };
   return (
-    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles[status] || 'bg-mist-200 text-ink-600'}`}>
+    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles[status] || 'bg-mist-200 dark:bg-ink-800 text-ink-600 dark:text-mist-300'}`}>
       {status}
     </span>
   );

@@ -33,7 +33,7 @@ export default function FileUploader({ label, file, onFileSelect, accept = '.xls
           handleFiles(e.dataTransfer.files);
         }}
         className={`cursor-pointer rounded-xl border-2 border-dashed px-5 py-8 text-center transition-colors ${
-          dragOver ? 'border-signal bg-signal/5' : 'border-mist-300 hover:border-mist-400 bg-mist-100/60'
+          dragOver ? 'border-signal bg-signal/5 dark:bg-signal/10' : 'border-mist-300 dark:border-ink-700 hover:border-mist-400 dark:hover:border-ink-600 bg-mist-100/60 dark:bg-ink-950/40'
         }`}
       >
         <input
@@ -45,17 +45,17 @@ export default function FileUploader({ label, file, onFileSelect, accept = '.xls
         />
 
         {file ? (
-          <div className="flex items-center justify-center gap-2 text-ink-800">
-            <FileIcon className="w-5 h-5 text-signal-dark shrink-0" />
+          <div className="flex items-center justify-center gap-2 text-ink-800 dark:text-mist-100">
+            <FileIcon className="w-5 h-5 text-signal-dark dark:text-signal-light shrink-0" />
             <span className="text-sm font-medium truncate max-w-[220px]">{file.name}</span>
           </div>
         ) : (
           <>
-            <FileIcon className="w-6 h-6 mx-auto text-mist-400 mb-2" />
-            <p className="text-sm text-ink-600">
-              <span className="font-semibold text-signal-dark">Click to browse</span> or drag a file here
+            <FileIcon className="w-6 h-6 mx-auto text-mist-400 dark:text-ink-500 mb-2" />
+            <p className="text-sm text-ink-600 dark:text-mist-300">
+              <span className="font-semibold text-signal-dark dark:text-signal">Click to browse</span> or drag a file here
             </p>
-            <p className="text-xs text-ink-400 mt-1">.xlsx or .xls, up to 15MB</p>
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-1">.xlsx or .xls, up to 15MB</p>
           </>
         )}
       </div>

@@ -48,8 +48,8 @@ export default function FilterBar({
         )}
 
         {onDateChange && (
-          <div className="flex items-center gap-2 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
-            <label htmlFor="single-date-picker" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+          <div className="flex items-center gap-2 bg-white dark:bg-ink-900 border border-mist-200 dark:border-ink-800 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="single-date-picker" className="text-xs font-semibold text-ink-500 dark:text-mist-400 whitespace-nowrap">
               {dateLabel}:
             </label>
             <input
@@ -57,12 +57,12 @@ export default function FilterBar({
               type="date"
               value={date}
               onChange={(e) => onDateChange(e.target.value)}
-              className="text-xs font-medium text-ink-900 bg-transparent border border-mist-300 rounded px-2 py-1 focus:outline-none focus:border-signal cursor-pointer"
+              className="text-xs font-medium text-ink-900 dark:text-mist-100 bg-transparent border border-mist-300 dark:border-ink-700 rounded px-2 py-1 focus:outline-none focus:border-signal cursor-pointer"
             />
             {date && (
               <button
                 onClick={() => onDateChange('')}
-                className="text-xs text-ink-500 hover:text-ink-950 font-bold px-1"
+                className="text-xs text-ink-500 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white font-bold px-1"
                 title="Clear date filter"
               >
                 ✕
@@ -72,65 +72,65 @@ export default function FilterBar({
         )}
 
         {onDamageTypeChange && (
-          <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
-            <label htmlFor="damage-type-select" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+          <div className="flex items-center gap-1.5 bg-white dark:bg-ink-900 border border-mist-200 dark:border-ink-800 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="damage-type-select" className="text-xs font-semibold text-ink-500 dark:text-mist-400 whitespace-nowrap">
               Damage Type:
             </label>
             <select
               id="damage-type-select"
               value={typeOfDamage}
               onChange={(e) => onDamageTypeChange(e.target.value)}
-              className="text-xs font-medium text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+              className="text-xs font-medium text-ink-900 dark:text-mist-100 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
             >
-              <option value="">All Damage Types</option>
-              <option value="Functional">Functional Damages</option>
-              <option value="Transit">Transit Damages</option>
+              <option value="" className="dark:bg-ink-900 dark:text-mist-100">All Damage Types</option>
+              <option value="Functional" className="dark:bg-ink-900 dark:text-mist-100">Functional Damages</option>
+              <option value="Transit" className="dark:bg-ink-900 dark:text-mist-100">Transit Damages</option>
             </select>
           </div>
         )}
 
         {onProductCategoryChange && (
-          <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
-            <label htmlFor="product-category-select" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+          <div className="flex items-center gap-1.5 bg-white dark:bg-ink-900 border border-mist-200 dark:border-ink-800 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="product-category-select" className="text-xs font-semibold text-ink-500 dark:text-mist-400 whitespace-nowrap">
               Model Type:
             </label>
             <select
               id="product-category-select"
               value={productCategory}
               onChange={(e) => onProductCategoryChange(e.target.value)}
-              className="text-xs font-medium text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+              className="text-xs font-medium text-ink-900 dark:text-mist-100 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
             >
-              <option value="">All Models</option>
-              <option value="TL">TL Models</option>
-              <option value="FL">FL Models</option>
+              <option value="" className="dark:bg-ink-900 dark:text-mist-100">All Models</option>
+              <option value="TL" className="dark:bg-ink-900 dark:text-mist-100">TL Models</option>
+              <option value="FL" className="dark:bg-ink-900 dark:text-mist-100">FL Models</option>
             </select>
           </div>
         )}
 
         {onAgeingCategoryChange && (
-          <div className="flex items-center gap-1.5 bg-white border border-mist-200 rounded-lg px-2.5 py-1.5 shadow-xs">
-            <label htmlFor="ageing-category-select" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
+          <div className="flex items-center gap-1.5 bg-white dark:bg-ink-900 border border-mist-200 dark:border-ink-800 rounded-lg px-2.5 py-1.5 shadow-xs">
+            <label htmlFor="ageing-category-select" className="text-xs font-semibold text-ink-500 dark:text-mist-400 whitespace-nowrap">
               Ageing:
             </label>
             <select
               id="ageing-category-select"
               value={ageingCategory}
               onChange={(e) => onAgeingCategoryChange(e.target.value)}
-              className="text-xs font-medium text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+              className="text-xs font-medium text-ink-900 dark:text-mist-100 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
             >
-              <option value="">All Ageing</option>
-              <option value="0-3-months">0-3 Months</option>
-              <option value="1-year">1 Year</option>
-              <option value="2-year">2 Year</option>
-              <option value="3-year">3 Year</option>
-              <option value="4-year">4 Year</option>
-              <option value="more-than-4-years">More than 4 Years</option>
+              <option value="" className="dark:bg-ink-900 dark:text-mist-100">All Ageing</option>
+              <option value="0-3-months" className="dark:bg-ink-900 dark:text-mist-100">0-3 Months</option>
+              <option value="1-year" className="dark:bg-ink-900 dark:text-mist-100">1 Year</option>
+              <option value="2-year" className="dark:bg-ink-900 dark:text-mist-100">2 Year</option>
+              <option value="3-year" className="dark:bg-ink-900 dark:text-mist-100">3 Year</option>
+              <option value="4-year" className="dark:bg-ink-900 dark:text-mist-100">4 Year</option>
+              <option value="more-than-4-years" className="dark:bg-ink-900 dark:text-mist-100">More than 4 Years</option>
             </select>
           </div>
         )}
 
         {activeCategoryLabel && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/10 text-signal-dark text-xs font-semibold pl-3 pr-1.5 py-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/10 dark:bg-signal/20 text-signal-dark dark:text-signal-light text-xs font-semibold pl-3 pr-1.5 py-1.5">
             {activeCategoryLabel}
             <button
               onClick={onClearCategory}

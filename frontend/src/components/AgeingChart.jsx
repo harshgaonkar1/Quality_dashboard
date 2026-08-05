@@ -8,17 +8,19 @@
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { useAdmin } from '../context/AdminContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function AgeingChart({ cards }) {
   const { isAdmin } = useAdmin();
+  const { isDark } = useTheme();
 
-  const textColor = isAdmin ? '#4ade80' : '#3E5578';
-  const lineColor = isAdmin ? 'rgba(34, 197, 94, 0.4)' : '#D3DCE8';
-  const gridColor = isAdmin ? 'rgba(34, 197, 94, 0.15)' : '#E7ECF3';
-  const flColor = isAdmin ? '#4ade80' : '#2563EB';
-  const tlColor = isAdmin ? '#15803d' : '#EF4444';
-  const tooltipBg = isAdmin ? '#050505' : '#101A2C';
-  const tooltipBorder = isAdmin ? '#22c55e' : '#101A2C';
+  const textColor = isAdmin ? '#4ade80' : isDark ? '#A9B7CC' : '#3E5578';
+  const lineColor = isAdmin ? 'rgba(34, 197, 94, 0.4)' : isDark ? '#1E2D4A' : '#D3DCE8';
+  const gridColor = isAdmin ? 'rgba(34, 197, 94, 0.15)' : isDark ? 'rgba(30, 45, 74, 0.6)' : '#E7ECF3';
+  const flColor = isAdmin ? '#4ade80' : isDark ? '#38BDF8' : '#2563EB';
+  const tlColor = isAdmin ? '#15803d' : isDark ? '#FB7185' : '#EF4444';
+  const tooltipBg = isAdmin ? '#050505' : isDark ? '#0B1220' : '#101A2C';
+  const tooltipBorder = isAdmin ? '#22c55e' : isDark ? '#1E2D4A' : '#101A2C';
 
   const options = {
     chart: {

@@ -7,7 +7,7 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
   body {
-    @apply text-ink-900 antialiased;
+    @apply text-ink-900 bg-mist-100 dark:bg-ink-950 dark:text-mist-100 antialiased transition-colors duration-200;
   }
   h1, h2, h3, h4 {
     font-family: 'Sora', system-ui, sans-serif;
@@ -21,19 +21,19 @@
 
 @layer components {
   .panel {
-    @apply bg-white rounded-xl shadow-panel border border-mist-300/60;
+    @apply bg-white dark:bg-ink-900 rounded-xl shadow-panel border border-mist-300/60 dark:border-ink-800/80 transition-colors;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink-800 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink-900 dark:bg-signal dark:text-ink-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink-800 dark:hover:bg-signal-light disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-mist-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition-colors hover:bg-mist-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-mist-300 dark:border-ink-700 bg-white dark:bg-ink-800 px-4 py-2.5 text-sm font-semibold text-ink-800 dark:text-mist-200 transition-colors hover:bg-mist-100 dark:hover:bg-ink-700;
   }
   .input-field {
-    @apply w-full rounded-lg border border-mist-300 bg-white px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-mist-400 focus:border-signal focus:ring-1 focus:ring-signal transition-colors;
+    @apply w-full rounded-lg border border-mist-300 dark:border-ink-700 bg-white dark:bg-ink-900 px-3.5 py-2.5 text-sm text-ink-900 dark:text-mist-100 placeholder:text-mist-400 dark:placeholder:text-ink-500 focus:border-signal focus:ring-1 focus:ring-signal transition-colors;
   }
   .label-text {
-    @apply text-xs font-semibold uppercase tracking-wide text-ink-500;
+    @apply text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-mist-400;
   }
 }
 
