@@ -86,6 +86,25 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
     const bseName = getFieldValue(data, ['BSE Name', 'bse name', 'BSE_Name', 'bse_name']);
     const industry = getFieldValue(data, ['Industry', 'industry', 'INDUSTRY']);
 
+    // Product Replacement Specific Filters
+    if (uploadType === 'PRODUCT_REPLACEMENT') {
+      const cleanFdStatus = fdZbrnStatus ? fdZbrnStatus.trim().toLowerCase() : '';
+      if (cleanFdStatus !== 'approved' && cleanFdStatus !== 'approved for upgrade') {
+        skipped.push({ rowNumber, reason: `FD ZBRN Status '${fdZbrnStatus || 'N/A'}' is not Approved or Approved for Upgrade`, complaintNumber: complaintNumber || null, serialNumber });
+        continue;
+      }
+
+      if (!normalizedMachineStatus || normalizedMachineStatus.toUpperCase() !== 'SW') {
+        skipped.push({ rowNumber, reason: `Machine Status '${machineStatus || 'N/A'}' is not SW`, complaintNumber: complaintNumber || null, serialNumber });
+        continue;
+      }
+
+      if (!normalizedMatCat || (normalizedMatCat !== 'WM' && normalizedMatCat !== 'WD')) {
+        skipped.push({ rowNumber, reason: `Material Category '${productCat || matCat || 'N/A'}' is not WM or WD`, complaintNumber: complaintNumber || null, serialNumber });
+        continue;
+      }
+    }
+
     // Part Replacement Specific Filters
     if (uploadType === 'PART_REPLACEMENT') {
       const spuStatus = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus']);

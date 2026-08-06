@@ -70,12 +70,10 @@ function getFieldValue(row, aliases) {
  * Returns { valid: boolean, missingColumns: string[] }
  */
 function validateHeaders(headerRow) {
-  // Pass all uploaded Excel files to preserve 100% of data in the database
   return { valid: true, missingColumns: [] };
 }
 
 function validateRow(row) {
-  // Allow all non-empty rows to be stored in database
   if (!row || Object.keys(row).length === 0) {
     return { valid: false, reason: 'Empty row' };
   }
