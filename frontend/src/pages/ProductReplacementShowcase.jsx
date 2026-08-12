@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFetch } from '../hooks/useFetch';
 import { useDebounce } from '../hooks/useDebounce';
+import { useTVRemote } from '../hooks/useTVRemote';
 import { fetchDashboardDetails, fetchDashboardSummary } from '../services/productReplacementService';
 import TLFLPieChart from '../components/TLFLPieChart';
 import DataTable from '../components/DataTable';
@@ -133,6 +134,44 @@ export default function ProductReplacementShowcase() {
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
+  // TV Remote key handlers & shortcuts
+  const handleToggleSlide = useCallback(() => {
+    setActiveSlide((curr) => (curr === 'pie' ? 'table' : 'pie'));
+    setTimeLeft(ROTATION_INTERVAL_SEC);
+  }, []);
+
+  const handleToggleAutoPlayCallback = useCallback(() => {
+    setAutoPlay((prev) => !prev);
+    setTimeLeft(ROTATION_INTERVAL_SEC);
+  }, []);
+
+  const handleToggleFullscreenCallback = useCallback(() => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch((err) => {
+        console.error('Error entering fullscreen:', err);
+      });
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.error('Error exiting fullscreen:', err);
+      });
+      setIsFullscreen(false);
+    }
+  }, []);
+
+  useTVRemote({
+    onLeft: handleToggleSlide,
+    onRight: handleToggleSlide,
+    onPlayPause: handleToggleAutoPlayCallback,
+    onNext: handleToggleSlide,
+    onFullscreen: handleToggleFullscreenCallback,
+    onBack: () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    },
+  });
+
   // Table columns configuration
   const columns = [
     { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
@@ -189,18 +228,20 @@ export default function ProductReplacementShowcase() {
               {/* View Switcher Tabs */}
               <div className="inline-flex p-0.5 rounded-lg bg-mist-200/80 dark:bg-ink-950 border border-mist-300 dark:border-ink-800">
                 <button
+                  tabIndex={0}
                   onClick={() => handleSelectSlide('pie')}
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${activeSlide === 'pie'
-                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs'
+                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs ring-2 ring-signal/50'
                     : 'text-ink-600 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white'
                     }`}
                 >
                   🥧 Pie Chart View
                 </button>
                 <button
+                  tabIndex={0}
                   onClick={() => handleSelectSlide('table')}
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${activeSlide === 'table'
-                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs'
+                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs ring-2 ring-signal/50'
                     : 'text-ink-600 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white'
                     }`}
                 >
@@ -210,6 +251,7 @@ export default function ProductReplacementShowcase() {
 
               {/* Play / Pause Rotation Toggle */}
               <button
+                tabIndex={0}
                 onClick={toggleAutoPlay}
                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${autoPlay
                   ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
@@ -222,6 +264,7 @@ export default function ProductReplacementShowcase() {
 
               {/* Next View Button */}
               <button
+                tabIndex={0}
                 onClick={() => handleSelectSlide(activeSlide === 'pie' ? 'table' : 'pie')}
                 className="px-2.5 py-1 text-xs font-bold rounded-lg border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
                 title="Switch to next slide immediately"
@@ -231,6 +274,7 @@ export default function ProductReplacementShowcase() {
 
               {/* Fullscreen Toggle */}
               <button
+                tabIndex={0}
                 onClick={toggleFullscreen}
                 className="px-2.5 py-1 text-xs font-bold rounded-lg border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
                 title="Toggle full screen mode"

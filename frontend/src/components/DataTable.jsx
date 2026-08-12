@@ -34,6 +34,7 @@ export default function DataTable({
                 >
                   {col.sortable ? (
                     <button
+                      tabIndex={0}
                       onClick={() => onSort(col.key)}
                       className="inline-flex items-center gap-1 hover:text-ink-950 dark:hover:text-white transition-colors"
                     >
@@ -92,6 +93,7 @@ export default function DataTable({
 function PageButton({ onClick, disabled, label }) {
   return (
     <button
+      tabIndex={0}
       onClick={onClick}
       disabled={disabled}
       className="px-3 py-1.5 text-xs font-semibold rounded-md border border-mist-300 dark:border-ink-700 text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"

@@ -12,10 +12,17 @@
   h1, h2, h3, h4 {
     font-family: 'Sora', system-ui, sans-serif;
   }
-  /* Visible keyboard focus for accessibility */
-  :focus-visible {
-    outline: 2px solid #1FB6A6;
-    outline-offset: 2px;
+  /* Visible TV Remote & Keyboard Focus Indicators */
+  :focus-visible,
+  a:focus,
+  button:focus,
+  input:focus,
+  select:focus {
+    outline: 3px solid #1FB6A6 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 4px rgba(31, 182, 166, 0.35), 0 0 20px rgba(31, 182, 166, 0.6) !important;
+    transform: scale(1.03);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease;
   }
 }
 
@@ -204,5 +211,17 @@ html.admin-mode [class*="rounded-full"] {
   border-color: rgba(34, 197, 94, 0.5) !important;
   color: #4ade80 !important;
 }
+
+/* TV Remote focus in Admin Mode */
+html.admin-mode :focus-visible,
+html.admin-mode a:focus,
+html.admin-mode button:focus,
+html.admin-mode input:focus,
+html.admin-mode select:focus {
+  outline: 3px solid #4ade80 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.4), 0 0 25px rgba(74, 222, 128, 0.8) !important;
+}
+
 
 

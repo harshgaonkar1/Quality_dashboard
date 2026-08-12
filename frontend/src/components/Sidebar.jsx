@@ -50,9 +50,10 @@ export default function Sidebar({ open, onClose }) {
               to={to}
               end={to === '/'}
               onClick={onClose}
+              tabIndex={0}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2 lg:py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                  ? 'bg-ink-800 text-white'
+                  ? 'bg-ink-800 text-white ring-2 ring-signal/50'
                   : 'text-mist-400 hover:bg-ink-900 hover:text-mist-200'
                 }`
               }
@@ -66,6 +67,7 @@ export default function Sidebar({ open, onClose }) {
         {/* Sidebar Theme Switcher */}
         <div className="p-3 border-t border-ink-800 shrink-0">
           <button
+            tabIndex={0}
             onClick={toggleTheme}
             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-ink-900/90 hover:bg-ink-800 border border-ink-700/60 text-xs text-mist-200 transition-all cursor-pointer shadow-xs"
             title="Click to toggle Light/Dark Mode"

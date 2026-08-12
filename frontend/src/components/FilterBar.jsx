@@ -38,6 +38,7 @@ export default function FilterBar({
               <path d="m17 17-3.8-3.8" strokeLinecap="round" />
             </svg>
             <input
+              tabIndex={0}
               type="text"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -53,6 +54,7 @@ export default function FilterBar({
               {dateLabel}:
             </label>
             <input
+              tabIndex={0}
               id="single-date-picker"
               type="date"
               value={date}
@@ -61,6 +63,7 @@ export default function FilterBar({
             />
             {date && (
               <button
+                tabIndex={0}
                 onClick={() => onDateChange('')}
                 className="text-xs text-ink-500 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white font-bold px-1"
                 title="Clear date filter"
@@ -77,6 +80,7 @@ export default function FilterBar({
               Damage Type:
             </label>
             <select
+              tabIndex={0}
               id="damage-type-select"
               value={typeOfDamage}
               onChange={(e) => onDamageTypeChange(e.target.value)}
@@ -95,6 +99,7 @@ export default function FilterBar({
               Model Type:
             </label>
             <select
+              tabIndex={0}
               id="product-category-select"
               value={productCategory}
               onChange={(e) => onProductCategoryChange(e.target.value)}
@@ -113,6 +118,7 @@ export default function FilterBar({
               Ageing:
             </label>
             <select
+              tabIndex={0}
               id="ageing-category-select"
               value={ageingCategory}
               onChange={(e) => onAgeingCategoryChange(e.target.value)}
@@ -133,6 +139,7 @@ export default function FilterBar({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/10 dark:bg-signal/20 text-signal-dark dark:text-signal-light text-xs font-semibold pl-3 pr-1.5 py-1.5">
             {activeCategoryLabel}
             <button
+              tabIndex={0}
               onClick={onClearCategory}
               className="w-4 h-4 rounded-full hover:bg-signal/20 flex items-center justify-center"
               aria-label="Clear category filter"
@@ -144,7 +151,7 @@ export default function FilterBar({
       </div>
 
       {onExport && (
-        <button onClick={onExport} disabled={exporting} className="btn-secondary shrink-0">
+        <button tabIndex={0} onClick={onExport} disabled={exporting} className="btn-secondary shrink-0">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" className="w-4 h-4">
             <path d="M10 3v9M6.5 8.5 10 12l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M4 15.5h12" strokeLinecap="round" />

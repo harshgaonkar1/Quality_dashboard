@@ -12,6 +12,7 @@ import Sidebar from '../components/Sidebar';
 import AdminModal from '../components/AdminModal';
 import { useAdmin } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTVRemote } from '../hooks/useTVRemote';
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
@@ -29,6 +30,15 @@ export default function DashboardLayout() {
   const { isAdmin, openAdminModal, logoutAdmin } = useAdmin();
   const { isDark, toggleTheme, theme } = useTheme();
 
+  // Enable TV Remote navigation across all dashboard pages
+  useTVRemote({
+    onBack: () => {
+      if (sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    },
+  });
+
   const title =
     PAGE_TITLES[location.pathname] ||
     (location.pathname.startsWith('/product-replacement') ? 'Product Replacement Details' :
@@ -45,6 +55,7 @@ export default function DashboardLayout() {
         }`}>
           <div className="flex items-center gap-3">
             <button
+              tabIndex={0}
               className={`lg:hidden p-2 -ml-2 rounded-md ${isAdmin ? 'text-green-400 hover:bg-neutral-900' : 'text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800'}`}
               onClick={() => setSidebarOpen(true)}
               aria-label="Open navigation"
@@ -61,6 +72,7 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Quick Dark/Light Mode Toggle Button */}
             <button
+              tabIndex={0}
               onClick={toggleTheme}
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${
                 isAdmin
@@ -94,6 +106,7 @@ export default function DashboardLayout() {
                   <span>⚡</span> SYSTEM_ADMIN://ROOT_ACCESS
                 </span>
                 <button
+                  tabIndex={0}
                   onClick={logoutAdmin}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold font-mono rounded-lg bg-red-950/90 hover:bg-red-900 border border-red-500/60 text-red-300 transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)] cursor-pointer"
                   title="Logout from Admin Mode"
@@ -106,6 +119,7 @@ export default function DashboardLayout() {
               </div>
             ) : (
               <button
+                tabIndex={0}
                 onClick={openAdminModal}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ink-900 dark:bg-signal dark:text-ink-950 hover:bg-ink-800 dark:hover:bg-signal-light text-white text-xs font-semibold transition-all shadow-xs"
               >
