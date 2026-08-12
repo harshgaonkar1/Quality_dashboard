@@ -16,6 +16,7 @@ import { useTheme } from '../context/ThemeContext';
 const PAGE_TITLES = {
   '/': 'Dashboard',
   '/product-replacement': 'Product Replacement',
+  '/product-replacement/showcase': 'Product Replacement Showcase',
   '/part-replacement': 'Part Replacement',
   '/reports': 'Reports',
   '/settings': 'Settings',

@@ -82,6 +82,13 @@ export default function ProductReplacement() {
           </div>
 
           <button
+            onClick={() => navigate('/product-replacement/showcase')}
+            className="px-3 py-1.5 rounded-lg bg-signal/15 hover:bg-signal/25 text-signal-dark dark:text-signal border border-signal/40 text-xs font-bold transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+          >
+            <span>📺</span> Launch Showcase
+          </button>
+
+          <button
             onClick={handleViewAll}
             className="btn-secondary"
           >

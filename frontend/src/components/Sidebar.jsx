@@ -12,6 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: GridIcon },
   { to: '/product-replacement', label: 'Product Replacement', icon: BoxIcon },
+  { to: '/product-replacement/showcase', label: 'PR Showcase', icon: TvIcon },
   { to: '/part-replacement', label: 'Part Replacement', icon: CogIcon },
   { to: '/upload', label: 'Upload Data', icon: UploadIcon },
   // { to: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -131,6 +132,14 @@ function SettingsIcon(props) {
   return (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
       <path d="M3 5h14M3 10h14M3 15h8" strokeLinecap="round" />
+    </svg>
+  );
+}
+function TvIcon(props) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+      <rect x="2" y="4" width="16" height="11" rx="2" />
+      <path d="M7 18h6M10 15v3" strokeLinecap="round" />
     </svg>
   );
 }

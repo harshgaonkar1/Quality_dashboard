@@ -357,4 +357,58 @@ async function updateComment(serialNumber, comment, complaintNumber = null) {
   }
 }
 
-module.exports = { getSummaryCounts, getDetails, getDetailsForExport, updateComment, ALLOWED_STATUS };
+/**
+ * Returns the latest date in product_replacement table as YYYY-MM-DD string.
+ */
+async function getLatestDate() {
+  if (supabase) {
+    try {
+      const { data: rows, error } = await supabase
+        .from('product_replacement')
+        .select('zmac_date, doc')
+        .in('fd_zbrn_status', ALLOWED_STATUS)
+        .in('mat_cat', ALLOWED_MAT_CAT)
+        .in('machine_status', ALLOWED_MACHINE_STATUS)
+        .order('zmac_date', { ascending: false })
+        .limit(5);
+
+      if (!error && rows && rows.length > 0) {
+        for (const r of rows) {
+          const raw = r.zmac_date || r.doc;
+          if (raw) {
+            const dateStr = String(raw).split('T')[0];
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Supabase getLatestDate notice:', e.message);
+    }
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT DATE(COALESCE(zmac_date, doc)) AS latest_date
+       FROM product_replacement
+       WHERE fd_zbrn_status IN (?, ?)
+         AND mat_cat IN (?, ?)
+         AND machine_status IN (?)
+         AND (zmac_date IS NOT NULL OR doc IS NOT NULL)
+       ORDER BY COALESCE(zmac_date, doc) DESC
+       LIMIT 1`,
+      BASE_PARAMS
+    );
+    if (rows && rows[0] && rows[0].latest_date) {
+      const d = new Date(rows[0].latest_date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  } catch (e) {
+    console.warn('⚠️ SQL getLatestDate notice:', e.message);
+  }
+  return null;
+}
+
+module.exports = { getSummaryCounts, getDetails, getDetailsForExport, updateComment, getLatestDate, ALLOWED_STATUS };

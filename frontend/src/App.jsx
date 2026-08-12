@@ -10,6 +10,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import ProductReplacement from './pages/ProductReplacement';
 import ProductReplacementDetails from './pages/ProductReplacementDetails';
+import ProductReplacementShowcase from './pages/ProductReplacementShowcase';
 import PartReplacement from './pages/PartReplacement';
 import PartReplacementDetails from './pages/PartReplacementDetails';
 import Reports from './pages/Reports';
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/product-replacement" element={<ProductReplacement />} />
         <Route path="/product-replacement/details" element={<ProductReplacementDetails />} />
+        <Route path="/product-replacement/showcase" element={<ProductReplacementShowcase />} />
         <Route path="/part-replacement" element={<PartReplacement />} />
         <Route path="/part-replacement/details" element={<PartReplacementDetails />} />
         <Route path="/reports" element={<Reports />} />

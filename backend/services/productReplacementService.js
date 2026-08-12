@@ -18,7 +18,14 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  * each with its label and count.
  */
 async function getDashboardSummary({ typeOfDamage = '', productCategory = '', date = '' } = {}) {
-  const counts = await productReplacementModel.getSummaryCounts({ typeOfDamage, productCategory, date });
+  let activeDate = date;
+  let latestDate = await productReplacementModel.getLatestDate();
+
+  if (date === 'latest') {
+    activeDate = latestDate || '';
+  }
+
+  const counts = await productReplacementModel.getSummaryCounts({ typeOfDamage, productCategory, date: activeDate });
 
   const cards = [
     {
@@ -69,7 +76,7 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
   const tlCount = Number(counts.tl_count) || 0;
   const flCount = Number(counts.fl_count) || 0;
 
-  return { total, tlCount, flCount, cards };
+  return { total, tlCount, flCount, cards, activeDate, latestDate };
 }
 
 /**
@@ -79,6 +86,11 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
 async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, typeOfDamage, productCategory, date }) {
   let ageingMin = null;
   let ageingMax = null;
+  let activeDate = date;
+
+  if (date === 'latest') {
+    activeDate = (await productReplacementModel.getLatestDate()) || '';
+  }
 
   if (ageingCategory) {
     const range = getAgeingRangeByKey(ageingCategory);
@@ -92,7 +104,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
   }
 
   const result = await productReplacementModel.getDetails({
-    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, typeOfDamage, productCategory, date,
+    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, typeOfDamage, productCategory, date: activeDate,
   });
 
   const enrichedRows = result.rows.map((row) => ({
