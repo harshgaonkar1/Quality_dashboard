@@ -107,7 +107,7 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
 
     // Part Replacement Specific Filters
     if (uploadType === 'PART_REPLACEMENT') {
-      const spuStatus = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus']);
+      const spuStatus = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue']);
       const cleanSpuStatus = spuStatus ? spuStatus.replace(/\s+/g, '').toLowerCase() : '';
       if (cleanSpuStatus !== 'closedbystoreexecutive') {
         skipped.push({ rowNumber, reason: `SPU Status '${spuStatus || 'N/A'}' is not ClosedByStoreExecutive`, complaintNumber: complaintNumber || null, serialNumber });
@@ -119,13 +119,23 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
         continue;
       }
 
-      if (!normalizedMatCat || normalizedMatCat !== 'WM') {
-        skipped.push({ rowNumber, reason: `Product Category '${productCat || 'N/A'}' is not WM`, complaintNumber: complaintNumber || null, serialNumber });
+      // Product Category: only consider WM and WD
+      if (!normalizedMatCat || (normalizedMatCat !== 'WM' && normalizedMatCat !== 'WD')) {
+        skipped.push({ rowNumber, reason: `Product Category '${productCat || 'N/A'}' is not WM or WD`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
 
+      // Approved Qty: Approved qty >= 1 (or > 1)
+      const approvedQtyRaw = getFieldValue(data, ['Approved qty', 'Approved Qty', 'APPROVED QTY', 'App Qty', 'App_Qty', 'Approved_Qty', 'Approved Quantity']);
+      const approvedQty = (approvedQtyRaw !== null && approvedQtyRaw !== undefined) ? Number(approvedQtyRaw) : null;
+      if (approvedQty !== null && (isNaN(approvedQty) || approvedQty < 1)) {
+        skipped.push({ rowNumber, reason: `Approved Qty '${approvedQtyRaw}' is not >= 1`, complaintNumber: complaintNumber || null, serialNumber });
+        continue;
+      }
+
+      // Rej Qty: Rej qty = 0
       const rejQtyRaw = getFieldValue(data, ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'RejQty', 'Rejected Qty', 'Reject Qty']);
-      const rejQty = rejQtyRaw !== null ? Number(rejQtyRaw) : 0;
+      const rejQty = (rejQtyRaw !== null && rejQtyRaw !== undefined) ? Number(rejQtyRaw) : 0;
       if (isNaN(rejQty) || rejQty !== 0) {
         skipped.push({ rowNumber, reason: `Rej Qty '${rejQtyRaw}' is not 0`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
@@ -134,22 +144,26 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
 
     seenSerialNumbers.add(serialNumber);
 
-    // Sub Category handling (TLU -> TL, FLU -> FL)
+    // Sub Category handling (FLU -> FL, TLM and TL -> TL)
     const rawSubCat = getFieldValue(data, ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat']);
     let subCategory = null;
     if (rawSubCat) {
       const upperSub = rawSubCat.trim().toUpperCase();
-      if (upperSub === 'TLU' || upperSub.startsWith('TL')) subCategory = 'TL';
-      else if (upperSub === 'FLU' || upperSub.startsWith('FL')) subCategory = 'FL';
-      else subCategory = upperSub;
+      if (upperSub === 'FLU' || upperSub.startsWith('FL')) {
+        subCategory = 'FL';
+      } else if (upperSub === 'TLM' || upperSub === 'TL' || upperSub === 'TLU' || upperSub.startsWith('TL')) {
+        subCategory = 'TL';
+      } else {
+        subCategory = upperSub;
+      }
     } else if (rawModel) {
       const upperModel = rawModel.trim().toUpperCase();
       if (upperModel.startsWith('TL')) subCategory = 'TL';
       else if (upperModel.startsWith('FL')) subCategory = 'FL';
     }
 
-    // DOC handling: for Part Replacement, DOC = SPU Created Date
-    const rawSpuCreatedDate = getFieldValue(data, ['SPU Created Date', 'spu created date', 'SPU_Created_Date', 'SPU Date']);
+    // DOC handling: for Part Replacement, DOC = SPU Created Date / SPU Created Data
+    const rawSpuCreatedDate = getFieldValue(data, ['SPU Created Date', 'spu created date', 'SPU_Created_Date', 'SPU Date', 'SPU Created Data', 'spu created data']);
     const rawDoc = getFieldValue(data, ['ticket posting date', 'Ticket Posting Date', 'DOC', 'Date of Complaint', 'Complaint Date', 'Posting Date']);
     const targetDocDateRaw = uploadType === 'PART_REPLACEMENT' ? (rawSpuCreatedDate || rawDoc) : (rawDoc || rawSpuCreatedDate);
 
@@ -164,10 +178,12 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
     // Ageing Days = SPU Created Date (DOC) - DOI in days
     const ageingDays = (doiDate && docDate) ? calculateAgeingDays(doiDate, docDate) : null;
 
-    const spuStatusValue = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus']);
+    const spuStatusValue = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue']);
     const rejQtyValue = getFieldValue(data, ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'RejQty']);
+    const approvedQtyValue = getFieldValue(data, ['Approved qty', 'Approved Qty', 'APPROVED QTY', 'App Qty', 'App_Qty', 'Approved_Qty', 'Approved Quantity']);
+    const franchiseValue = getFieldValue(data, ['Franchise', 'franchise', 'FRANCHISE', 'Franchisee Name', 'franchisee_name', 'Franchisee ID', 'franchisee_id']);
 
-    const itemCode = getFieldValue(data, ['Item Code', 'item code', 'ITEM CODE', 'Item_Code', 'spare', 'Spare', 'Spare Code', 'Part Code', 'part code']);
+    const itemCode = getFieldValue(data, ['ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code', 'spare', 'Spare', 'Spare Code', 'Part Code', 'part code']);
     const description = getFieldValue(data, ['Description', 'description', 'DESCRIPTION', 'spare desc', 'Spare Desc', 'Part Description', 'part description']);
     const problemDescription = getFieldValue(data, ['Problem Description', 'problem description', 'PROBLEM DESCRIPTION', 'Problem_Description', 'customer complaint', 'Customer Complaint', 'Complaint Description']);
 
@@ -183,7 +199,8 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       customer_first_name: customerFirstName || null,
       city: city || null,
       franchisee_id: franchiseeId || null,
-      franchisee_name: franchiseeName || null,
+      franchisee_name: franchiseeName || franchiseValue || null,
+      franchise: franchiseValue || franchiseeName || null,
       branch: branch || null,
       doc: docDate ? toMySQLDate(docDate) : null,
       ticket_no: ticketNo || null,
@@ -191,7 +208,8 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       machine_status: normalizedMachineStatus || null,
       product_category: normalizedMatCat || null,
       sub_category: subCategory || null,
-      rej_qty: rejQtyValue !== null ? Number(rejQtyValue) : 0,
+      approved_qty: approvedQtyValue !== null && approvedQtyValue !== undefined ? Number(approvedQtyValue) : 0,
+      rej_qty: rejQtyValue !== null && rejQtyValue !== undefined ? Number(rejQtyValue) : 0,
       dop: dopDate ? toMySQLDate(dopDate) : null,
       doi: doiDate ? toMySQLDate(doiDate) : null,
       technician_name: technicianName || null,

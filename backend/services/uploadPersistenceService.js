@@ -24,9 +24,9 @@ const TABLE_CONFIG = {
   PART_REPLACEMENT: {
     table: 'part_replacement',
     columns: [
-      'complaint_number', 'branch', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
+      'complaint_number', 'branch', 'franchise', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
       'machine_status', 'model', 'serial_number', 'item_code', 'description', 'problem_description',
-      'product_category', 'sub_category', 'rej_qty', 'ageing_days', 'raw_payload',
+      'product_category', 'sub_category', 'approved_qty', 'rej_qty', 'ageing_days', 'raw_payload',
     ],
   },
 };

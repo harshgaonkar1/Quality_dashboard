@@ -16,6 +16,7 @@ import DataTable from '../components/DataTable';
 import FilterBar from '../components/FilterBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
+import ActionPlanModal from '../components/ActionPlanModal';
 import { formatDate } from '../utils/formatDate';
 import { exportToCSV } from '../utils/csvExport';
 
@@ -127,6 +128,9 @@ export default function ProductReplacementDetails() {
   const [sortDir, setSortDir] = useState('DESC');
   const [exporting, setExporting] = useState(false);
 
+  const [actionPlanRow, setActionPlanRow] = useState(null);
+  const [isActionPlanOpen, setIsActionPlanOpen] = useState(false);
+
   const debouncedSearch = useDebounce(search, 400);
 
   // Reset to page 1 whenever the filter scope or search term changes
@@ -152,6 +156,15 @@ export default function ProductReplacementDetails() {
 
   const { data, loading, error, refetch } = useFetch(fetchFn, [fetchFn]);
 
+  const handleOpenActionPlan = (row) => {
+    setActionPlanRow(row);
+    setIsActionPlanOpen(true);
+  };
+
+  const handleSaveActionPlanSuccess = () => {
+    refetch();
+  };
+
   const columns = [
     { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
     { key: 'zmac_date', label: 'ZMAC Date', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
@@ -172,6 +185,33 @@ export default function ProductReplacementDetails() {
     { key: 'ageing_days', label: 'ageing days', sortable: true },
     { key: 'ageing_category', label: 'ageing category', sortable: true },
     { key: 'admin_comment', label: 'Remarks', sortable: false, render: (row) => <RemarksCell row={row} isAdmin={isAdmin} openAdminModal={openAdminModal} /> },
+    {
+      key: 'action_plan',
+      label: 'Action Plan',
+      sortable: false,
+      render: (row) => {
+        const hasPlan = Boolean(row.action_done || row.responsible_person || row.initiator_name);
+        return (
+          <button
+            onClick={() => handleOpenActionPlan(row)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs ${
+              hasPlan
+                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100'
+                : 'bg-white text-ink-800 dark:bg-ink-900 dark:text-mist-200 border-mist-300 dark:border-ink-700 hover:bg-mist-100 dark:hover:bg-ink-800'
+            }`}
+            title={
+              hasPlan
+                ? `Action: ${row.action_done || 'N/A'}\nResponsible: ${row.responsible_person || 'N/A'}\nInitiator: ${row.initiator_name || 'N/A'}`
+                : 'Click to open Action Plan modal'
+            }
+          >
+            <span>📋</span>
+            <span>{hasPlan ? 'View Plan' : 'Action Plan'}</span>
+            {hasPlan && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+          </button>
+        );
+      },
+    },
   ];
 
   function handleSort(columnKey) {
@@ -259,6 +299,9 @@ export default function ProductReplacementDetails() {
           { key: 'ageing_days', label: 'ageing days' },
           { key: 'ageing_category', label: 'ageing category' },
           { key: 'admin_comment', label: 'Remarks' },
+          { key: 'action_done', label: 'Action Done' },
+          { key: 'responsible_person', label: 'Responsible Person' },
+          { key: 'initiator_name', label: 'Initiator Name' },
         ],
         `product-replacement-${typeOfDamage || 'all'}-${productCategory || 'all'}-${ageingCategory || 'all'}-${Date.now()}.csv`
       );
@@ -321,6 +364,15 @@ export default function ProductReplacementDetails() {
           onPageChange={setPage}
         />
       )}
+
+      <ActionPlanModal
+        isOpen={isActionPlanOpen}
+        onClose={() => setIsActionPlanOpen(false)}
+        row={actionPlanRow}
+        onSaveSuccess={handleSaveActionPlanSuccess}
+        isAdmin={isAdmin}
+        openAdminModal={openAdminModal}
+      />
     </div>
   );
 }

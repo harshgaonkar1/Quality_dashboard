@@ -142,4 +142,9 @@ async function updateComment(serialNumber, comment) {
   return productReplacementModel.updateComment(serialNumber, comment);
 }
 
-module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, updateComment, AGEING_CATEGORIES };
+/** Updates action plan for a record by serial_number or complaint_number. */
+async function updateActionPlan(serialNumber, actionPlanData, complaintNumber = null) {
+  return productReplacementModel.updateActionPlan(serialNumber, actionPlanData, complaintNumber);
+}
+
+module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, updateComment, updateActionPlan, AGEING_CATEGORIES };

@@ -224,7 +224,7 @@ async function getDetails({
     'call_type', 'machine_status', 'dop', 'doi', 'technician_name', 'technician_no', 'mat_cat',
     'product_id', 'model', 'serial_number', 'survey_origin', 'type_of_damage', 'customer_complaint',
     'part_description', 'part_code', 'out_bound_del', 'out_bound_del_date', 'dealer_code', 'dealer_name',
-    'bse_name', 'industry', 'ageing_days',
+    'bse_name', 'industry', 'ageing_days', 'action_done', 'responsible_person', 'initiator_name', 'action_plan_date',
   ];
   const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'doc';
   const safeSortDir = sortDir && sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
@@ -264,7 +264,7 @@ async function getDetails({
               call_type, machine_status, dop, doi, technician_name, technician_no, mat_cat,
               product_id, model, serial_number, survey_origin, type_of_damage, customer_complaint,
               part_description, part_code, out_bound_del, out_bound_del_date, dealer_code, dealer_name,
-              bse_name, industry, ageing_days, admin_comment
+              bse_name, industry, ageing_days, admin_comment, action_done, responsible_person, initiator_name, action_plan_date
        FROM product_replacement
        WHERE ${whereClause}
        ORDER BY ${safeSortBy} ${safeSortDir}
@@ -306,7 +306,7 @@ async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = 
               call_type, machine_status, dop, doi, technician_name, technician_no, mat_cat,
               product_id, model, serial_number, survey_origin, type_of_damage, customer_complaint,
               part_description, part_code, out_bound_del, out_bound_del_date, dealer_code, dealer_name,
-              bse_name, industry, ageing_days, admin_comment
+              bse_name, industry, ageing_days, admin_comment, action_done, responsible_person, initiator_name, action_plan_date
        FROM product_replacement
        WHERE ${whereClause}
        ORDER BY doc DESC`,
@@ -353,6 +353,67 @@ async function updateComment(serialNumber, comment, complaintNumber = null) {
     const [result] = await pool.query(query, [comment, param]);
     return result.affectedRows > 0;
   } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Updates action plan fields for a record by serial_number or complaint_number.
+ */
+async function updateActionPlan(serialNumber, { actionDone, responsiblePerson, initiatorName }, complaintNumber = null) {
+  const updateData = {
+    action_done: actionDone ?? null,
+    responsible_person: responsiblePerson ?? null,
+    initiator_name: initiatorName ?? null,
+    action_plan_date: new Date().toISOString(),
+  };
+
+  if (supabase) {
+    try {
+      let q = supabase.from('product_replacement').update(updateData);
+      if (serialNumber) {
+        q = q.eq('serial_number', serialNumber);
+      } else if (complaintNumber) {
+        q = q.eq('complaint_number', complaintNumber);
+      } else {
+        return false;
+      }
+      const { error } = await q;
+      if (error) {
+        console.warn('⚠️ Supabase updateActionPlan notice:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('⚠️ Supabase updateActionPlan error:', e.message);
+      return false;
+    }
+  }
+
+  try {
+    let query = `
+      UPDATE product_replacement
+      SET action_done = ?, responsible_person = ?, initiator_name = ?, action_plan_date = NOW()
+      WHERE serial_number = ?
+    `;
+    let param = serialNumber;
+    if (!param && complaintNumber) {
+      query = `
+        UPDATE product_replacement
+        SET action_done = ?, responsible_person = ?, initiator_name = ?, action_plan_date = NOW()
+        WHERE complaint_number = ?
+      `;
+      param = complaintNumber;
+    }
+    const [result] = await pool.query(query, [
+      updateData.action_done,
+      updateData.responsible_person,
+      updateData.initiator_name,
+      param,
+    ]);
+    return result.affectedRows > 0;
+  } catch (e) {
+    console.warn('⚠️ SQL pool updateActionPlan error:', e.message);
     return false;
   }
 }
@@ -411,4 +472,4 @@ async function getLatestDate() {
   return null;
 }
 
-module.exports = { getSummaryCounts, getDetails, getDetailsForExport, updateComment, getLatestDate, ALLOWED_STATUS };
+module.exports = { getSummaryCounts, getDetails, getDetailsForExport, updateComment, updateActionPlan, getLatestDate, ALLOWED_STATUS };

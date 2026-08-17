@@ -94,4 +94,25 @@ async function saveComment(req, res, next) {
   }
 }
 
-module.exports = { getDashboard, getDetails, saveComment };
+/**
+ * POST /api/product/action-plan
+ * Expects JSON body: { serialNumber: string, complaintNumber: string, actionDone: string, responsiblePerson: string, initiatorName: string }
+ */
+async function saveActionPlan(req, res, next) {
+  try {
+    const { serialNumber, complaintNumber, actionDone, responsiblePerson, initiatorName } = req.body;
+    if (!serialNumber && !complaintNumber) {
+      return error(res, 'Serial number or complaint number is required', 400);
+    }
+    const updated = await productReplacementService.updateActionPlan(
+      serialNumber,
+      { actionDone, responsiblePerson, initiatorName },
+      complaintNumber
+    );
+    return success(res, { updated }, 'Action plan saved successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getDashboard, getDetails, saveComment, saveActionPlan };

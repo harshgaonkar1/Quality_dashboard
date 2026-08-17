@@ -46,6 +46,10 @@ CREATE TABLE IF NOT EXISTS product_replacement (
   industry            VARCHAR(128) NULL,
   ageing_days         INT NULL,
   admin_comment       TEXT NULL,
+  action_done         TEXT NULL,
+  responsible_person  VARCHAR(128) NULL,
+  initiator_name      VARCHAR(128) NULL,
+  action_plan_date    TIMESTAMPTZ NULL,
   raw_payload         JSONB NULL,
   created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -56,6 +60,10 @@ CREATE TABLE IF NOT EXISTS product_replacement (
 -- Ensure all columns are added if product_replacement already existed
 ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS ageing_days INT NULL;
 ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS admin_comment TEXT NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS action_done TEXT NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS responsible_person VARCHAR(128) NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS initiator_name VARCHAR(128) NULL;
+ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS action_plan_date TIMESTAMPTZ NULL;
 ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS raw_payload JSONB NULL;
 ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS fd_zbrn_status VARCHAR(64) NULL;
 ALTER TABLE product_replacement ADD COLUMN IF NOT EXISTS mat_cat VARCHAR(64) NULL;
@@ -74,6 +82,7 @@ CREATE TABLE IF NOT EXISTS part_replacement (
   id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   complaint_number    VARCHAR(64)  NULL,
   branch              VARCHAR(128) NULL,
+  franchise           VARCHAR(128) NULL,
   spu_status          VARCHAR(64)  NULL,
   spu_created_date    DATE NULL,
   doc                 DATE NULL,
@@ -88,6 +97,7 @@ CREATE TABLE IF NOT EXISTS part_replacement (
   problem_description TEXT NULL,
   product_category    VARCHAR(64)  NULL,
   sub_category        VARCHAR(64)  NULL,
+  approved_qty        INT DEFAULT 0,
   rej_qty             INT DEFAULT 0,
   type_of_damage      VARCHAR(64)  NULL,
   ageing_days         INT NULL,
@@ -104,6 +114,8 @@ ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS ageing_days INT NULL;
 ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS admin_comment TEXT NULL;
 ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS raw_payload JSONB NULL;
 ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS sub_category VARCHAR(64) NULL;
+ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS franchise VARCHAR(128) NULL;
+ALTER TABLE part_replacement ADD COLUMN IF NOT EXISTS approved_qty INT DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_part_complaint_number ON part_replacement (complaint_number);
 CREATE INDEX IF NOT EXISTS idx_part_spu_status ON part_replacement (spu_status);

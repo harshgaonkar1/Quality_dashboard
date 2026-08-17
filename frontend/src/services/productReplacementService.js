@@ -32,3 +32,8 @@ export function fetchDetailsForExport(params) {
 export function saveProductComment(serialNumber, comment) {
   return api.post('/product/comment', { serialNumber, comment });
 }
+
+/** Saves an action plan for a product replacement row. */
+export function saveProductActionPlan(data) {
+  return api.post('/product/action-plan', data);
+}

@@ -201,9 +201,9 @@ async function getDetails({
   date = '',
 } = {}) {
   const allowedSortColumns = [
-    'branch', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
+    'branch', 'franchise', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
     'machine_status', 'model', 'serial_number', 'item_code', 'description', 'problem_description',
-    'sub_category', 'ageing_days', 'complaint_number',
+    'product_category', 'sub_category', 'approved_qty', 'rej_qty', 'ageing_days', 'complaint_number',
   ];
   const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'doc';
   const safeSortDir = sortDir && sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
@@ -238,8 +238,8 @@ async function getDetails({
     const total = countRows[0]?.total || 0;
 
     const [rows] = await pool.query(
-      `SELECT branch, spu_status, spu_created_date, doc, doi, dop, ticket_no, machine_status, model,
-              serial_number, item_code, description, problem_description, sub_category, ageing_days, complaint_number, admin_comment
+      `SELECT branch, franchise, spu_status, spu_created_date, doc, doi, dop, ticket_no, machine_status, model,
+              serial_number, item_code, description, problem_description, product_category, sub_category, approved_qty, rej_qty, ageing_days, complaint_number, admin_comment
        FROM part_replacement
        WHERE ${whereClause}
        ORDER BY ${safeSortBy} ${safeSortDir}
@@ -276,8 +276,8 @@ async function getDetailsForExport({ search = '', ageingMin = null, ageingMax = 
   try {
     const { whereClause, params } = buildWhereClause({ search, ageingMin, ageingMax, typeOfDamage, productCategory, subCategory, date });
     const [rows] = await pool.query(
-      `SELECT branch, spu_status, spu_created_date, doc, doi, dop, ticket_no, machine_status, model,
-              serial_number, item_code, description, problem_description, sub_category, ageing_days, complaint_number, admin_comment
+      `SELECT branch, franchise, spu_status, spu_created_date, doc, doi, dop, ticket_no, machine_status, model,
+              serial_number, item_code, description, problem_description, product_category, sub_category, approved_qty, rej_qty, ageing_days, complaint_number, admin_comment
        FROM part_replacement
        WHERE ${whereClause}
        ORDER BY doc DESC`,
