@@ -34,6 +34,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_installation_failure) || 0,
       tlCount: Number(counts.bucket_installation_failure_tl) || 0,
       flCount: Number(counts.bucket_installation_failure_fl) || 0,
+      tlFunc: Number(counts.bucket_installation_failure_tl_func) || 0,
+      tlTrans: Number(counts.bucket_installation_failure_tl_trans) || 0,
+      flFunc: Number(counts.bucket_installation_failure_fl_func) || 0,
+      flTrans: Number(counts.bucket_installation_failure_fl_trans) || 0,
     },
     {
       key: '0-3-months',
@@ -41,6 +45,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_0_3_months) || 0,
       tlCount: Number(counts.bucket_0_3_months_tl) || 0,
       flCount: Number(counts.bucket_0_3_months_fl) || 0,
+      tlFunc: Number(counts.bucket_0_3_months_tl_func) || 0,
+      tlTrans: Number(counts.bucket_0_3_months_tl_trans) || 0,
+      flFunc: Number(counts.bucket_0_3_months_fl_func) || 0,
+      flTrans: Number(counts.bucket_0_3_months_fl_trans) || 0,
     },
     {
       key: '1-year',
@@ -48,6 +56,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_1_year) || 0,
       tlCount: Number(counts.bucket_1_year_tl) || 0,
       flCount: Number(counts.bucket_1_year_fl) || 0,
+      tlFunc: Number(counts.bucket_1_year_tl_func) || 0,
+      tlTrans: Number(counts.bucket_1_year_tl_trans) || 0,
+      flFunc: Number(counts.bucket_1_year_fl_func) || 0,
+      flTrans: Number(counts.bucket_1_year_fl_trans) || 0,
     },
     {
       key: '2-year',
@@ -55,6 +67,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_2_year) || 0,
       tlCount: Number(counts.bucket_2_year_tl) || 0,
       flCount: Number(counts.bucket_2_year_fl) || 0,
+      tlFunc: Number(counts.bucket_2_year_tl_func) || 0,
+      tlTrans: Number(counts.bucket_2_year_tl_trans) || 0,
+      flFunc: Number(counts.bucket_2_year_fl_func) || 0,
+      flTrans: Number(counts.bucket_2_year_fl_trans) || 0,
     },
     {
       key: '3-year',
@@ -62,6 +78,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_3_year) || 0,
       tlCount: Number(counts.bucket_3_year_tl) || 0,
       flCount: Number(counts.bucket_3_year_fl) || 0,
+      tlFunc: Number(counts.bucket_3_year_tl_func) || 0,
+      tlTrans: Number(counts.bucket_3_year_tl_trans) || 0,
+      flFunc: Number(counts.bucket_3_year_fl_func) || 0,
+      flTrans: Number(counts.bucket_3_year_fl_trans) || 0,
     },
     {
       key: '4-year',
@@ -69,6 +89,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_4_year) || 0,
       tlCount: Number(counts.bucket_4_year_tl) || 0,
       flCount: Number(counts.bucket_4_year_fl) || 0,
+      tlFunc: Number(counts.bucket_4_year_tl_func) || 0,
+      tlTrans: Number(counts.bucket_4_year_tl_trans) || 0,
+      flFunc: Number(counts.bucket_4_year_fl_func) || 0,
+      flTrans: Number(counts.bucket_4_year_fl_trans) || 0,
     },
     {
       key: 'more-than-4-years',
@@ -76,6 +100,10 @@ async function getDashboardSummary({ typeOfDamage = '', productCategory = '', da
       count: Number(counts.bucket_more_than_4_years) || 0,
       tlCount: Number(counts.bucket_more_than_4_years_tl) || 0,
       flCount: Number(counts.bucket_more_than_4_years_fl) || 0,
+      tlFunc: Number(counts.bucket_more_than_4_years_tl_func) || 0,
+      tlTrans: Number(counts.bucket_more_than_4_years_tl_trans) || 0,
+      flFunc: Number(counts.bucket_more_than_4_years_fl_func) || 0,
+      flTrans: Number(counts.bucket_more_than_4_years_fl_trans) || 0,
     },
   ];
 

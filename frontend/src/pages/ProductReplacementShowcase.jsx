@@ -327,17 +327,17 @@ export default function ProductReplacementShowcase() {
         </div>
 
         {/* Filter Bar for Showcase Data */}
-        <FilterBar
-          search={activeSlide === 'table' ? search : ''}
-          onSearchChange={activeSlide === 'table' ? setSearch : undefined}
-          date={date === 'latest' ? (summaryData?.data?.activeDate || summaryData?.data?.latestDate || '') : date}
-          onDateChange={(val) => setDate(val || 'latest')}
+        {/* <FilterBar
+          // search={activeSlide === 'table' ? search : ''}
+          // onSearchChange={activeSlide === 'table' ? setSearch : undefined}
+          // date={date === 'latest' ? (summaryData?.data?.activeDate || summaryData?.data?.latestDate || '') : date}
+          // onDateChange={(val) => setDate(val || 'latest')}
           dateLabel="ZMAC Date"
           typeOfDamage={typeOfDamage}
           onDamageTypeChange={setTypeOfDamage}
           productCategory={productCategory}
           onProductCategoryChange={setProductCategory}
-        />
+        /> */}
       </div>
 
       {/* Main Slide Area: Both kept mounted in DOM to PREVENT re-animation on slide switch */}

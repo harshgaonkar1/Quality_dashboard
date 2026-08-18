@@ -105,12 +105,33 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
 
 const EMPTY_COUNTS = {
   bucket_installation_failure: 0, bucket_installation_failure_tl: 0, bucket_installation_failure_fl: 0,
+  bucket_installation_failure_tl_func: 0, bucket_installation_failure_tl_trans: 0,
+  bucket_installation_failure_fl_func: 0, bucket_installation_failure_fl_trans: 0,
+
   bucket_0_3_months: 0, bucket_0_3_months_tl: 0, bucket_0_3_months_fl: 0,
+  bucket_0_3_months_tl_func: 0, bucket_0_3_months_tl_trans: 0,
+  bucket_0_3_months_fl_func: 0, bucket_0_3_months_fl_trans: 0,
+
   bucket_1_year: 0, bucket_1_year_tl: 0, bucket_1_year_fl: 0,
+  bucket_1_year_tl_func: 0, bucket_1_year_tl_trans: 0,
+  bucket_1_year_fl_func: 0, bucket_1_year_fl_trans: 0,
+
   bucket_2_year: 0, bucket_2_year_tl: 0, bucket_2_year_fl: 0,
+  bucket_2_year_tl_func: 0, bucket_2_year_tl_trans: 0,
+  bucket_2_year_fl_func: 0, bucket_2_year_fl_trans: 0,
+
   bucket_3_year: 0, bucket_3_year_tl: 0, bucket_3_year_fl: 0,
+  bucket_3_year_tl_func: 0, bucket_3_year_tl_trans: 0,
+  bucket_3_year_fl_func: 0, bucket_3_year_fl_trans: 0,
+
   bucket_4_year: 0, bucket_4_year_tl: 0, bucket_4_year_fl: 0,
+  bucket_4_year_tl_func: 0, bucket_4_year_tl_trans: 0,
+  bucket_4_year_fl_func: 0, bucket_4_year_fl_trans: 0,
+
   bucket_more_than_4_years: 0, bucket_more_than_4_years_tl: 0, bucket_more_than_4_years_fl: 0,
+  bucket_more_than_4_years_tl_func: 0, bucket_more_than_4_years_tl_trans: 0,
+  bucket_more_than_4_years_fl_func: 0, bucket_more_than_4_years_fl_trans: 0,
+
   tl_count: 0, fl_count: 0, total: 0,
 };
 
@@ -120,7 +141,7 @@ const EMPTY_COUNTS = {
 async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date = '' } = {}) {
   if (supabase) {
     try {
-      let q = supabase.from('product_replacement').select('ageing_days, model');
+      let q = supabase.from('product_replacement').select('ageing_days, model, type_of_damage');
       q = applySupabaseFilters(q, { typeOfDamage, productCategory, date });
 
       const { data: rows, error } = await q;
@@ -134,31 +155,33 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
       (rows || []).forEach((row) => {
         const days = row.ageing_days;
         const isTl = row.model && row.model.toUpperCase().startsWith('TL');
+        const damage = (row.type_of_damage || '').toLowerCase();
+        const isFunc = damage.includes('func');
+        const isTrans = damage.includes('trans');
 
         if (isTl) counts.tl_count++;
         else counts.fl_count++;
 
-        if (days === 0 || days === '0') {
-          counts.bucket_installation_failure++;
-          if (isTl) counts.bucket_installation_failure_tl++; else counts.bucket_installation_failure_fl++;
-        } else if (days === null || days === undefined || (days >= 1 && days <= 90)) {
-          counts.bucket_0_3_months++;
-          if (isTl) counts.bucket_0_3_months_tl++; else counts.bucket_0_3_months_fl++;
-        } else if (days >= 91 && days <= 365) {
-          counts.bucket_1_year++;
-          if (isTl) counts.bucket_1_year_tl++; else counts.bucket_1_year_fl++;
-        } else if (days >= 366 && days <= 730) {
-          counts.bucket_2_year++;
-          if (isTl) counts.bucket_2_year_tl++; else counts.bucket_2_year_fl++;
-        } else if (days >= 731 && days <= 1095) {
-          counts.bucket_3_year++;
-          if (isTl) counts.bucket_3_year_tl++; else counts.bucket_3_year_fl++;
-        } else if (days >= 1096 && days <= 1460) {
-          counts.bucket_4_year++;
-          if (isTl) counts.bucket_4_year_tl++; else counts.bucket_4_year_fl++;
-        } else if (days > 1460) {
-          counts.bucket_more_than_4_years++;
-          if (isTl) counts.bucket_more_than_4_years_tl++; else counts.bucket_more_than_4_years_fl++;
+        let bKey = '';
+        if (days === 0 || days === '0') bKey = 'bucket_installation_failure';
+        else if (days === null || days === undefined || (days >= 1 && days <= 90)) bKey = 'bucket_0_3_months';
+        else if (days >= 91 && days <= 365) bKey = 'bucket_1_year';
+        else if (days >= 366 && days <= 730) bKey = 'bucket_2_year';
+        else if (days >= 731 && days <= 1095) bKey = 'bucket_3_year';
+        else if (days >= 1096 && days <= 1460) bKey = 'bucket_4_year';
+        else if (days > 1460) bKey = 'bucket_more_than_4_years';
+
+        if (bKey) {
+          counts[bKey]++;
+          if (isTl) {
+            counts[`${bKey}_tl`]++;
+            if (isFunc) counts[`${bKey}_tl_func`]++;
+            if (isTrans) counts[`${bKey}_tl_trans`]++;
+          } else {
+            counts[`${bKey}_fl`]++;
+            if (isFunc) counts[`${bKey}_fl_func`]++;
+            if (isTrans) counts[`${bKey}_fl_trans`]++;
+          }
         }
       });
 
@@ -176,32 +199,60 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
           SUM(CASE WHEN ageing_days = 0 THEN 1 ELSE 0 END) AS bucket_installation_failure,
           SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl,
           SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_installation_failure_fl,
+          SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl_func,
+          SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl_trans,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_installation_failure_fl_func,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_installation_failure_fl_trans,
 
           SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) THEN 1 ELSE 0 END) AS bucket_0_3_months,
           SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
           SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl_func,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl_trans,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_0_3_months_fl_func,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_0_3_months_fl_trans,
 
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 THEN 1 ELSE 0 END)   AS bucket_1_year,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 THEN 1 ELSE 0 END) AS bucket_1_year,
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_1_year_tl,
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_1_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_1_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_1_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_1_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_1_year_fl_trans,
 
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 THEN 1 ELSE 0 END)  AS bucket_2_year,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 THEN 1 ELSE 0 END) AS bucket_2_year,
           SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_2_year_tl,
           SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_2_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_2_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_2_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_2_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_2_year_fl_trans,
 
           SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 THEN 1 ELSE 0 END) AS bucket_3_year,
           SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_3_year_tl,
           SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_3_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_3_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_3_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_3_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_3_year_fl_trans,
 
           SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 THEN 1 ELSE 0 END) AS bucket_4_year,
           SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_4_year_tl,
           SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_4_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_4_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_4_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_4_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_4_year_fl_trans,
 
-          SUM(CASE WHEN ageing_days > 1460 THEN 1 ELSE 0 END)               AS bucket_more_than_4_years,
+          SUM(CASE WHEN ageing_days > 1460 THEN 1 ELSE 0 END) AS bucket_more_than_4_years,
           SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl,
           SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl,
+          SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl_func,
+          SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl_trans,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl_func,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl_trans,
 
-          SUM(CASE WHEN UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END)          AS tl_count,
+          SUM(CASE WHEN UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS tl_count,
           SUM(CASE WHEN UPPER(model) NOT LIKE 'TL%' OR model IS NULL THEN 1 ELSE 0 END) AS fl_count,
           COUNT(*) AS total
        FROM product_replacement
