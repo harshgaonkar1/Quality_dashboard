@@ -22,7 +22,7 @@ import { formatDate } from '../utils/formatDate';
 import { useAdmin } from '../context/AdminContext';
 
 const ROTATION_INTERVAL_SEC = 15;
-const PAGE_SIZE = 8; // Fits perfectly into single frame screen view
+const PAGE_SIZE = 7; // Fits perfectly into single frame 32-inch TV screen view without vertical scroll
 
 export default function ProductReplacementShowcase() {
   const { isAdmin } = useAdmin();
@@ -211,36 +211,36 @@ export default function ProductReplacementShowcase() {
   return (
     <div
       ref={containerRef}
-      className={`space-y-2.5 max-w-7xl mx-auto flex flex-col justify-between ${isFullscreen
-        ? 'p-4 bg-mist-100 dark:bg-ink-950 h-screen overflow-hidden'
-        : 'w-full'
+      className={`space-y-3 max-w-[1720px] w-full mx-auto flex flex-col justify-between h-full ${isFullscreen
+        ? 'p-4 lg:p-6 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden'
+        : 'w-full h-full'
         }`}
     >
       {/* Header + Filter controls combined into compact single-frame top section */}
       <div className="space-y-3 shrink-0">
         {/* Top Controls Header */}
-        <div className={`p-3.5 lg:p-4 rounded-xl border transition-all ${isAdmin
+        <div className={`p-3.5 lg:p-4.5 rounded-xl border transition-all ${isAdmin
           ? 'bg-neutral-950 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
           : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-xs'
           }`}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-signal/20 text-signal-dark dark:text-signal border border-signal/30 uppercase tracking-wider animate-pulse">
-                📺 Showcase Mode
+              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-signal/20 text-signal-dark dark:text-signal border border-signal/40 uppercase tracking-widest animate-pulse">
+                Showcase Mode
               </span>
-              <h2 className="font-display text-base lg:text-lg font-bold text-ink-950 dark:text-white">
+              <h2 className="font-display text-lg lg:text-2xl font-extrabold text-ink-950 dark:text-white tracking-tight">
                 Product Replacement Showcase
               </h2>
             </div>
 
             {/* Action Bar & Mode Switcher */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap">
               {/* View Switcher Tabs */}
-              <div className="inline-flex p-0.5 rounded-lg bg-mist-200/80 dark:bg-ink-950 border border-mist-300 dark:border-ink-800">
+              <div className="inline-flex p-1 rounded-xl bg-mist-200/80 dark:bg-ink-950 border border-mist-300 dark:border-ink-800">
                 <button
                   tabIndex={0}
                   onClick={() => handleSelectSlide('pie')}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${activeSlide === 'pie'
+                  className={`px-3.5 py-1.5 rounded-lg text-xs lg:text-sm font-extrabold transition-all cursor-pointer ${activeSlide === 'pie'
                     ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs ring-2 ring-signal/50'
                     : 'text-ink-600 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white'
                     }`}
@@ -250,7 +250,7 @@ export default function ProductReplacementShowcase() {
                 <button
                   tabIndex={0}
                   onClick={() => handleSelectSlide('table')}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${activeSlide === 'table'
+                  className={`px-3.5 py-1.5 rounded-lg text-xs lg:text-sm font-extrabold transition-all cursor-pointer ${activeSlide === 'table'
                     ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs ring-2 ring-signal/50'
                     : 'text-ink-600 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white'
                     }`}
@@ -263,7 +263,7 @@ export default function ProductReplacementShowcase() {
               <button
                 tabIndex={0}
                 onClick={toggleAutoPlay}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${autoPlay
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs lg:text-sm font-extrabold border transition-all cursor-pointer ${autoPlay
                   ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                   : 'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
                   }`}
@@ -276,7 +276,7 @@ export default function ProductReplacementShowcase() {
               <button
                 tabIndex={0}
                 onClick={() => handleSelectSlide(activeSlide === 'pie' ? 'table' : 'pie')}
-                className="px-2.5 py-1 text-xs font-bold rounded-lg border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
+                className="px-3 py-1.5 text-xs lg:text-sm font-extrabold rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
                 title="Switch to next slide immediately"
               >
                 Next ➔
@@ -286,27 +286,27 @@ export default function ProductReplacementShowcase() {
               <button
                 tabIndex={0}
                 onClick={toggleFullscreen}
-                className="px-2.5 py-1 text-xs font-bold rounded-lg border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
-                title="Toggle full screen mode"
+                className="px-3 py-1.5 text-xs lg:text-sm font-extrabold rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
+                title="Toggle 32 inch TV full screen mode"
               >
-                {isFullscreen ? '↙ Exit' : '⛶ Fullscreen'}
+                {isFullscreen ? '↙ Exit TV Mode' : 'TV Fullscreen'}
               </button>
             </div>
           </div>
 
           {/* Animated 15s Timer Countdown Bar */}
           <div className="mt-2.5 pt-2 border-t border-mist-200 dark:border-ink-800/60">
-            <div className="flex items-center justify-between text-[11px] font-medium text-ink-500 dark:text-mist-400 mb-1">
-              <span className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
-                Current View: <strong className="text-ink-900 dark:text-white uppercase">{activeSlide === 'pie' ? 'Pie Chart' : 'Data Table'}</strong>
+            <div className="flex items-center justify-between text-xs lg:text-sm font-bold text-ink-500 dark:text-mist-400 mb-1">
+              <span className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
+                Current View: <strong className="text-ink-950 dark:text-white uppercase font-black">{activeSlide === 'pie' ? 'Pie Chart' : 'Data Table'}</strong>
               </span>
               <span>
                 {autoPlay ? `Auto-switching in ${timeLeft}s (15s rotation)` : 'Paused'}
               </span>
             </div>
 
-            <div className="w-full h-1.5 rounded-full overflow-hidden bg-mist-200 dark:bg-ink-800">
+            <div className="w-full h-2 rounded-full overflow-hidden bg-mist-200 dark:bg-ink-800">
               <div
                 className={`h-full transition-all duration-1000 ease-linear ${autoPlay ? 'bg-signal' : 'bg-amber-500'
                   }`}

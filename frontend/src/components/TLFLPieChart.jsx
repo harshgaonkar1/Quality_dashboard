@@ -40,7 +40,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
       type: 'pie',
       backgroundColor: 'transparent',
       style: { fontFamily: isAdmin ? '"JetBrains Mono", monospace' : 'Inter, system-ui, sans-serif' },
-      height: 220,
+      height: 250,
       animation: isFirstRender.current ? { duration: 800 } : false,
       margin: [0, 0, 0, 0],
     },
@@ -52,19 +52,19 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
       borderWidth: 1,
       borderRadius: 8,
       shadow: true,
-      style: { color: textColor, fontSize: '11px' },
+      style: { color: textColor, fontSize: '12px' },
       useHTML: true,
       formatter: function () {
         return `
           <div style="padding: 2px 4px;">
-            <div style="font-weight: 700; color: ${this.point.color}; font-size: 12px; margin-bottom: 2px;">
+            <div style="font-weight: 700; color: ${this.point.color}; font-size: 13px; margin-bottom: 2px;">
               ● ${this.point.name}
             </div>
-            <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 11px;">
+            <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 12px;">
               <span>Replacements:</span>
               <span style="font-weight: 700;">${this.y.toLocaleString()}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 11px; margin-top: 1px;">
+            <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 12px; margin-top: 1px;">
               <span>Share:</span>
               <span style="font-weight: 700;">${this.percentage.toFixed(1)}%</span>
             </div>
@@ -76,7 +76,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
       pie: {
         allowPointSelect: true,
         cursor: 'pointer',
-        innerSize: '58%',
+        innerSize: '55%',
         borderWidth: 2,
         borderColor: isDark || isAdmin ? '#0F172A' : '#FFFFFF',
         animation: isFirstRender.current ? { duration: 800 } : false,
@@ -85,8 +85,8 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
           format: '<b>{point.name}</b><br/>{point.y:.0f} ({point.percentage:.1f}%)',
           style: {
             color: textColor,
-            fontSize: '10px',
-            fontWeight: '600',
+            fontSize: '11px',
+            fontWeight: '700',
             textOutline: 'none',
           },
           connectorColor: subTextColor,
@@ -117,84 +117,84 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3.5">
       {/* 3 Summary Stat Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3.5">
         {/* Total Box */}
-        <div className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+        <div className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
           isAdmin
             ? 'bg-neutral-950 border-green-500/40 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.1)]'
             : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-2xs'
         }`}>
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-500 dark:text-mist-400 block">
+            <span className="text-xs font-black uppercase tracking-wider text-ink-500 dark:text-mist-400 block">
               Total Replacements
             </span>
-            <p className="text-xl lg:text-2xl font-extrabold font-display tracking-tight text-ink-950 dark:text-white mt-0.5">
+            <p className="text-2xl lg:text-3xl font-extrabold font-display tracking-tight text-ink-950 dark:text-white mt-0.5">
               {total.toLocaleString()}
             </p>
           </div>
-          <span className="w-8 h-8 rounded-lg bg-mist-200/80 dark:bg-ink-800 flex items-center justify-center text-sm shrink-0">
+          <span className="w-10 h-10 rounded-xl bg-mist-200/80 dark:bg-ink-800 flex items-center justify-center text-base shrink-0">
             📦
           </span>
         </div>
 
         {/* TL Box */}
-        <div className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+        <div className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
           isAdmin
             ? 'bg-neutral-950 border-rose-500/40 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.1)]'
             : 'bg-white dark:bg-ink-900 border-rose-200 dark:border-rose-900/40 shadow-2xs'
         }`}>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              <span className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
                 TL Models (Top Load)
               </span>
             </div>
-            <p className="text-xl lg:text-2xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400 mt-0.5">
+            <p className="text-2xl lg:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400 mt-0.5">
               {tlCount.toLocaleString()}
             </p>
           </div>
-          <span className="px-2 py-1 rounded-lg text-xs font-black bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl text-xs lg:text-sm font-black bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0">
             {tlPercent}%
           </span>
         </div>
 
         {/* FL Box */}
-        <div className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+        <div className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
           isAdmin
             ? 'bg-neutral-950 border-sky-500/40 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.1)]'
             : 'bg-white dark:bg-ink-900 border-sky-200 dark:border-sky-900/40 shadow-2xs'
         }`}>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+              <span className="text-xs font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
                 FL Models (Front Load)
               </span>
             </div>
-            <p className="text-xl lg:text-2xl font-extrabold font-display tracking-tight text-sky-600 dark:text-sky-400 mt-0.5">
+            <p className="text-2xl lg:text-3xl font-extrabold font-display tracking-tight text-sky-600 dark:text-sky-400 mt-0.5">
               {flCount.toLocaleString()}
             </p>
           </div>
-          <span className="px-2 py-1 rounded-lg text-xs font-black bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl text-xs lg:text-sm font-black bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
             {flPercent}%
           </span>
         </div>
       </div>
 
       {/* Side-by-Side Main Split Panels */}
-      <div className="grid grid-cols-12 gap-3 items-stretch">
+      <div className="grid grid-cols-12 gap-3.5 items-stretch">
         {/* Left Box: Pie Chart (5 cols) */}
-        <div className={`col-span-5 p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
+        <div className={`col-span-5 p-4 rounded-xl border flex flex-col justify-between transition-all ${
           isAdmin
             ? 'bg-neutral-950 border-green-500/30'
             : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-2xs'
         }`}>
           <div className="flex items-center justify-between pb-2 border-b border-mist-200 dark:border-ink-800">
-            <h3 className="text-xs font-bold text-ink-950 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+            <h3 className="text-xs lg:text-sm font-extrabold text-ink-950 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
               <span>🥧</span> Product Share
             </h3>
-            <span className="text-[10px] font-bold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
+            <span className="text-xs font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2.5 py-0.5 rounded border border-signal/30">
               {activeDate ? `Date: ${formatDate(activeDate)}` : 'Single Day'}
             </span>
           </div>
@@ -211,19 +211,19 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
         </div>
 
         {/* Right Box: Ageing Bucket Breakdown (7 cols) */}
-        <div className={`col-span-7 p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
+        <div className={`col-span-7 p-4 rounded-xl border flex flex-col justify-between transition-all ${
           isAdmin
             ? 'bg-neutral-950 border-green-500/30'
             : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-2xs'
         }`}>
           <div className="flex items-center justify-between pb-2 border-b border-mist-200 dark:border-ink-800 mb-2">
-            <h4 className="text-xs font-bold text-ink-950 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+            <h4 className="text-xs lg:text-sm font-extrabold text-ink-950 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
               <span>📊</span> Ageing Bucket Breakdown
             </h4>
-            <span className="text-[10px] text-ink-500 dark:text-mist-400 font-medium">TL / FL Ratio</span>
+            <span className="text-xs text-ink-500 dark:text-mist-400 font-bold">TL / FL Ratio</span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 my-auto">
+          <div className="grid grid-cols-3 gap-2.5 my-auto">
             {cards.map((card) => {
               const bucketTotal = card.count || 0;
               const bTl = card.tlCount || 0;
@@ -234,17 +234,17 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
               return (
                 <div
                   key={card.key}
-                  className="p-2 rounded-lg bg-mist-50 dark:bg-ink-950/60 border border-mist-200 dark:border-ink-800/80 space-y-1"
+                  className="p-2.5 rounded-xl bg-mist-50 dark:bg-ink-950/60 border border-mist-200 dark:border-ink-800/80 space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-[10px] text-ink-900 dark:text-mist-100 truncate max-w-[80px]">{card.label}</span>
-                    <span className="text-[9px] font-extrabold text-ink-600 dark:text-mist-300 bg-mist-200 dark:bg-ink-800 px-1 py-0.2 rounded">
+                    <span className="font-extrabold text-xs text-ink-900 dark:text-mist-100 truncate max-w-[100px]">{card.label}</span>
+                    <span className="text-xs font-black text-ink-700 dark:text-mist-200 bg-mist-200 dark:bg-ink-800 px-1.5 py-0.5 rounded">
                       {bucketTotal}
                     </span>
                   </div>
 
                   {/* Progress bar ratio */}
-                  <div className="w-full h-2 rounded-full overflow-hidden bg-mist-300 dark:bg-ink-800 flex">
+                  <div className="w-full h-2.5 rounded-full overflow-hidden bg-mist-300 dark:bg-ink-800 flex">
                     <div
                       style={{ width: `${bTlPct}%` }}
                       className="h-full bg-rose-500"
@@ -257,7 +257,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[9px] font-semibold">
+                  <div className="flex items-center justify-between text-[10px] lg:text-xs font-bold">
                     <span className="text-rose-600 dark:text-rose-400">
                       TL: <b>{bTl}</b> ({bTlPct}%)
                     </span>
