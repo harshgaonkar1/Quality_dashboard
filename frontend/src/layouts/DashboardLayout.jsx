@@ -15,7 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useTVRemote } from '../hooks/useTVRemote';
 
 const PAGE_TITLES = {
-  '/': 'Dashboard',
+  '/': 'FQC Replacement Dashboard',
   '/product-replacement': 'Product Replacement',
   '/product-replacement/showcase': 'Product Replacement Showcase',
   '/part-replacement': 'Part Replacement',
@@ -42,7 +42,7 @@ export default function DashboardLayout() {
   const title =
     PAGE_TITLES[location.pathname] ||
     (location.pathname.startsWith('/product-replacement') ? 'Product Replacement Details' :
-     location.pathname.startsWith('/part-replacement') ? 'Part Replacement Details' : 'Service Ops');
+      location.pathname.startsWith('/part-replacement') ? 'Part Replacement Details' : 'Service Ops');
 
   return (
     <div className={`h-screen flex overflow-hidden ${isAdmin ? 'bg-black text-green-400 font-mono' : 'bg-mist-100 dark:bg-ink-950 dark:text-mist-100'}`}>
@@ -50,9 +50,8 @@ export default function DashboardLayout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className={`h-14 lg:h-16 shrink-0 flex items-center justify-between px-4 lg:px-8 border-b transition-colors ${
-          isAdmin ? 'bg-neutral-950 border-green-500/40 text-green-400' : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 text-ink-950 dark:text-mist-100'
-        }`}>
+        <header className={`h-14 lg:h-16 shrink-0 flex items-center justify-between px-4 lg:px-8 border-b transition-colors ${isAdmin ? 'bg-neutral-950 border-green-500/40 text-green-400' : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 text-ink-950 dark:text-mist-100'
+          }`}>
           <div className="flex items-center gap-3">
             <button
               tabIndex={0}
@@ -74,11 +73,10 @@ export default function DashboardLayout() {
             <button
               tabIndex={0}
               onClick={toggleTheme}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${
-                isAdmin
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${isAdmin
                   ? 'border-green-500/40 bg-green-950/40 text-green-400 hover:bg-green-900/50'
                   : 'border-mist-300 dark:border-ink-700 bg-mist-100/80 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700'
-              }`}
+                }`}
               title={`Currently in ${isDark ? 'Dark' : 'Light'} Mode. Click to switch theme.`}
               aria-label="Toggle light and dark mode"
             >
@@ -129,11 +127,10 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className={`flex-1 overflow-y-auto ${
-          location.pathname === '/' || location.pathname === '/product-replacement/showcase'
+        <main className={`flex-1 overflow-y-auto ${location.pathname === '/' || location.pathname === '/product-replacement/showcase'
             ? 'p-2.5 lg:p-3.5 h-full flex flex-col justify-between'
             : 'p-4 lg:p-6 xl:p-8'
-        }`}>
+          }`}>
           <Outlet />
         </main>
       </div>

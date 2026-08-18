@@ -21,7 +21,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import { formatDate } from '../utils/formatDate';
 import { useAdmin } from '../context/AdminContext';
 
-const ROTATION_INTERVAL_SEC = 15;
+const ROTATION_INTERVAL_SEC = 30;
 const PAGE_SIZE = 7; // Fits perfectly into single frame 32-inch TV screen view without vertical scroll
 
 export default function ProductReplacementShowcase() {
@@ -211,15 +211,15 @@ export default function ProductReplacementShowcase() {
   return (
     <div
       ref={containerRef}
-      className={`space-y-3 max-w-[1720px] w-full mx-auto flex flex-col justify-between h-full ${isFullscreen
-        ? 'p-4 lg:p-6 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden'
-        : 'w-full h-full'
+      className={`max-w-[1720px] w-full mx-auto flex flex-col justify-between ${isFullscreen
+        ? 'fixed inset-0 z-50 p-3 lg:p-4.5 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden box-border space-y-2'
+        : 'w-full h-full space-y-3'
         }`}
     >
       {/* Header + Filter controls combined into compact single-frame top section */}
-      <div className="space-y-3 shrink-0">
+      <div className="space-y-2.5 shrink-0">
         {/* Top Controls Header */}
-        <div className={`p-3.5 lg:p-4.5 rounded-xl border transition-all ${isAdmin
+        <div className={`p-3 lg:p-4 rounded-xl border transition-all ${isAdmin
           ? 'bg-neutral-950 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
           : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-xs'
           }`}>
@@ -295,14 +295,14 @@ export default function ProductReplacementShowcase() {
           </div>
 
           {/* Animated 15s Timer Countdown Bar */}
-          <div className="mt-2.5 pt-2 border-t border-mist-200 dark:border-ink-800/60">
+          <div className="mt-2 pt-1.5 border-t border-mist-200 dark:border-ink-800/60">
             <div className="flex items-center justify-between text-xs lg:text-sm font-bold text-ink-500 dark:text-mist-400 mb-1">
               <span className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
                 Current View: <strong className="text-ink-950 dark:text-white uppercase font-black">{activeSlide === 'pie' ? 'Pie Chart' : 'Data Table'}</strong>
               </span>
               <span>
-                {autoPlay ? `Auto-switching in ${timeLeft}s (15s rotation)` : 'Paused'}
+                {autoPlay ? `Auto-switching in ${timeLeft}s` : 'Paused'}
               </span>
             </div>
 
@@ -331,9 +331,9 @@ export default function ProductReplacementShowcase() {
       </div>
 
       {/* Main Slide Area: Both kept mounted in DOM to PREVENT re-animation on slide switch */}
-      <div className="flex-1 min-h-0 flex flex-col justify-center my-auto">
+      <div className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-auto">
         {/* Slide 1: Pie Chart (Always mounted, hidden when activeSlide !== 'pie') */}
-        <div className={activeSlide === 'pie' ? 'block' : 'hidden'}>
+        <div className={activeSlide === 'pie' ? 'block h-full flex flex-col justify-between overflow-hidden' : 'hidden'}>
           {summaryLoading && !summaryData && <LoadingSpinner label="Loading Pie Chart Data..." />}
           {summaryError && <ErrorBanner message={summaryError} onRetry={refetchSummary} />}
           {summaryData && (
@@ -348,8 +348,8 @@ export default function ProductReplacementShowcase() {
         </div>
 
         {/* Slide 2: Data Table (Always mounted, hidden when activeSlide !== 'table') */}
-        <div className={activeSlide === 'table' ? 'block space-y-2' : 'hidden'}>
-          <div className="flex items-center justify-between">
+        <div className={activeSlide === 'table' ? 'block h-full flex flex-col justify-between overflow-hidden space-y-2' : 'hidden'}>
+          <div className="flex items-center justify-between shrink-0">
             <h3 className="text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
               <span>📋</span> Product Replacement Records Table
             </h3>
@@ -364,17 +364,19 @@ export default function ProductReplacementShowcase() {
           {detailsError && <ErrorBanner message={detailsError} onRetry={refetchDetails} />}
 
           {detailsData && (
-            <DataTable
-              columns={columns}
-              rows={detailsData.data.rows}
-              sortBy={sortBy}
-              sortDir={sortDir}
-              onSort={handleSort}
-              page={detailsData.data.page}
-              pageSize={detailsData.data.pageSize}
-              total={detailsData.data.total}
-              onPageChange={setPage}
-            />
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <DataTable
+                columns={columns}
+                rows={detailsData.data.rows}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                page={detailsData.data.page}
+                pageSize={detailsData.data.pageSize}
+                total={detailsData.data.total}
+                onPageChange={setPage}
+              />
+            </div>
           )}
         </div>
       </div>
