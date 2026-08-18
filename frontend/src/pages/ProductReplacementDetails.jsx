@@ -23,6 +23,7 @@ import { exportToCSV } from '../utils/csvExport';
 const PAGE_SIZE = 25;
 
 const CATEGORY_LABELS = {
+  'installation-failure': 'Installation Failure',
   '0-3-months': '0-3 Months',
   '1-year': '1 Year',
   '2-year': '2 Year',
@@ -183,7 +184,17 @@ export default function ProductReplacementDetails() {
     { key: 'survey_origin', label: 'survey origin', sortable: true },
     { key: 'customer_complaint', label: 'customer complaint', sortable: true },
     { key: 'ageing_days', label: 'ageing days', sortable: true },
-    { key: 'ageing_category', label: 'ageing category', sortable: true },
+    {
+      key: 'ageing_category',
+      label: 'ageing category',
+      sortable: true,
+      render: (row) => {
+        const days = row.ageing_days;
+        if (days === 0 || days === '0') return 'Installation Failure';
+        if (days !== null && days !== undefined && !isNaN(days) && Number(days) > 0 && Number(days) <= 90) return '0-3 Months';
+        return row.ageing_category || '0-3 Months';
+      }
+    },
     { key: 'admin_comment', label: 'Remarks', sortable: false, render: (row) => <RemarksCell row={row} isAdmin={isAdmin} openAdminModal={openAdminModal} /> },
     {
       key: 'action_plan',

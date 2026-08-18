@@ -184,17 +184,27 @@ export default function ProductReplacementShowcase() {
 
   // Table columns configuration
   const columns = [
-    { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
-    { key: 'zmac_date', label: 'ZMAC Date', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
-    { key: 'fd_zbrn_status', label: 'Status', sortable: true },
+    // { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
+    { key: 'zmac_date', label: 'Punch in Date ', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
+    // { key: 'fd_zbrn_status', label: 'Status', sortable: true },
     { key: 'branch', label: 'Branch', sortable: true },
     { key: 'ticket_no', label: 'Ticket No', sortable: true },
-    { key: 'machine_status', label: 'Machine Status', sortable: true },
-    { key: 'model', label: 'Product Description', sortable: true },
+    // { key: 'machine_status', label: 'Machine Status', sortable: true },
+    { key: 'model', label: 'Machine Model', sortable: true },
     { key: 'serial_number', label: 'Serial Number', sortable: true },
     { key: 'type_of_damage', label: 'Damage Type', sortable: true },
-    { key: 'ageing_days', label: 'Ageing Days', sortable: true },
-    { key: 'ageing_category', label: 'Ageing Category', sortable: true },
+    {
+      key: 'ageing_category',
+      label: 'Ageing Category',
+      sortable: true,
+      render: (row) => {
+        const days = row.ageing_days;
+        if (days === 0 || days === '0') return 'Installation Failure';
+        if (days !== null && days !== undefined && !isNaN(days) && Number(days) > 0 && Number(days) <= 90) return '0-3 Months';
+        return row.ageing_category || '0-3 Months';
+      }
+    },
+    { key: 'admin_comment', label: 'Remarks', sortable: false }
   ];
 
   function handleSort(columnKey) {

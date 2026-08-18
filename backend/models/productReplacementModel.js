@@ -43,12 +43,14 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
   }
 
   if (ageingMin !== null && ageingMax !== null) {
-    if (ageingMin === 0 && ageingMax === 90) {
-      whereClause += ' AND (ageing_days BETWEEN ? AND ? OR ageing_days IS NULL OR ageing_days < 0)';
+    if (ageingMin === 0 && ageingMax === 0) {
+      whereClause += ' AND (ageing_days = 0)';
+    } else if (ageingMin === 1 && ageingMax === 90) {
+      whereClause += ' AND (ageing_days BETWEEN 1 AND 90 OR ageing_days IS NULL OR ageing_days < 0)';
     } else {
       whereClause += ' AND ageing_days BETWEEN ? AND ?';
+      params.push(ageingMin, ageingMax);
     }
-    params.push(ageingMin, ageingMax);
   }
 
   if (search) {
@@ -84,8 +86,10 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
   }
 
   if (ageingMin !== null && ageingMax !== null) {
-    if (ageingMin === 0 && ageingMax === 90) {
-      q = q.or('and(ageing_days.gte.0,ageing_days.lte.90),ageing_days.is.null,ageing_days.lt.0');
+    if (ageingMin === 0 && ageingMax === 0) {
+      q = q.eq('ageing_days', 0);
+    } else if (ageingMin === 1 && ageingMax === 90) {
+      q = q.or('and(ageing_days.gte.1,ageing_days.lte.90),ageing_days.is.null,ageing_days.lt.0');
     } else {
       q = q.gte('ageing_days', ageingMin).lte('ageing_days', ageingMax);
     }
@@ -100,6 +104,7 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
 }
 
 const EMPTY_COUNTS = {
+  bucket_installation_failure: 0, bucket_installation_failure_tl: 0, bucket_installation_failure_fl: 0,
   bucket_0_3_months: 0, bucket_0_3_months_tl: 0, bucket_0_3_months_fl: 0,
   bucket_1_year: 0, bucket_1_year_tl: 0, bucket_1_year_fl: 0,
   bucket_2_year: 0, bucket_2_year_tl: 0, bucket_2_year_fl: 0,
@@ -133,7 +138,10 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
         if (isTl) counts.tl_count++;
         else counts.fl_count++;
 
-        if (days === null || days === undefined || days <= 90) {
+        if (days === 0 || days === '0') {
+          counts.bucket_installation_failure++;
+          if (isTl) counts.bucket_installation_failure_tl++; else counts.bucket_installation_failure_fl++;
+        } else if (days === null || days === undefined || (days >= 1 && days <= 90)) {
           counts.bucket_0_3_months++;
           if (isTl) counts.bucket_0_3_months_tl++; else counts.bucket_0_3_months_fl++;
         } else if (days >= 91 && days <= 365) {
@@ -165,9 +173,13 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
     const { whereClause, params } = buildWhereClause({ typeOfDamage, productCategory, date });
     const [rows] = await pool.query(
       `SELECT
-          SUM(CASE WHEN ageing_days IS NULL OR ageing_days <= 90 THEN 1 ELSE 0 END) AS bucket_0_3_months,
-          SUM(CASE WHEN (ageing_days IS NULL OR ageing_days <= 90) AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
-          SUM(CASE WHEN (ageing_days IS NULL OR ageing_days <= 90) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
+          SUM(CASE WHEN ageing_days = 0 THEN 1 ELSE 0 END) AS bucket_installation_failure,
+          SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_installation_failure_fl,
+
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) THEN 1 ELSE 0 END) AS bucket_0_3_months,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
 
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 THEN 1 ELSE 0 END)   AS bucket_1_year,
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_1_year_tl,

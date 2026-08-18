@@ -21,6 +21,13 @@ async function getDashboardSummary({ productCategory = '', subCategory = '', dat
 
   const cards = [
     {
+      key: 'installation-failure',
+      label: 'Installation Failure',
+      count: Number(counts.bucket_installation_failure) || 0,
+      tlCount: Number(counts.bucket_installation_failure_tl) || 0,
+      flCount: Number(counts.bucket_installation_failure_fl) || 0,
+    },
+    {
       key: '0-3-months',
       label: '0-3 Months',
       count: Number(counts.bucket_0_3_months) || 0,

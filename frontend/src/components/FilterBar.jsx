@@ -125,6 +125,7 @@ export default function FilterBar({
               className="text-xs font-medium text-ink-900 dark:text-mist-100 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
             >
               <option value="" className="dark:bg-ink-900 dark:text-mist-100">All Ageing</option>
+              <option value="installation-failure" className="dark:bg-ink-900 dark:text-mist-100">Installation Failure</option>
               <option value="0-3-months" className="dark:bg-ink-900 dark:text-mist-100">0-3 Months</option>
               <option value="1-year" className="dark:bg-ink-900 dark:text-mist-100">1 Year</option>
               <option value="2-year" className="dark:bg-ink-900 dark:text-mist-100">2 Year</option>

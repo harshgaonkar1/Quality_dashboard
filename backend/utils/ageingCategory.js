@@ -6,7 +6,8 @@
 // ============================================================
 
 const AGEING_CATEGORIES = [
-  { key: '0-3-months', label: '0-3 Months', min: 0, max: 90 },
+  { key: 'installation-failure', label: 'Installation Failure', min: 0, max: 0 },
+  { key: '0-3-months', label: '0-3 Months', min: 1, max: 90 },
   { key: '1-year', label: '1 Year', min: 91, max: 365 },
   { key: '2-year', label: '2 Year', min: 366, max: 730 },
   { key: '3-year', label: '3 Year', min: 731, max: 1095 },
@@ -19,10 +20,13 @@ const AGEING_CATEGORIES = [
  * Returns null if ageingDays is null/undefined/invalid.
  */
 function getAgeingCategory(ageingDays) {
-  if (ageingDays === null || ageingDays === undefined || isNaN(ageingDays) || ageingDays <= 90) {
-    return AGEING_CATEGORIES[0]; // '0-3-months'
+  if (ageingDays === 0 || ageingDays === '0') {
+    return AGEING_CATEGORIES[0]; // 'installation-failure'
   }
-  return AGEING_CATEGORIES.find((cat) => ageingDays >= cat.min && ageingDays <= cat.max) || AGEING_CATEGORIES[0];
+  if (ageingDays === null || ageingDays === undefined || isNaN(ageingDays) || ageingDays <= 90) {
+    return AGEING_CATEGORIES[1]; // '0-3-months'
+  }
+  return AGEING_CATEGORIES.find((cat) => ageingDays >= cat.min && ageingDays <= cat.max) || AGEING_CATEGORIES[1];
 }
 
 /**
