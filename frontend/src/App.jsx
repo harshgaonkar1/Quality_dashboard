@@ -21,10 +21,10 @@ export default function App() {
   return (
     <Routes>
       <Route element={<DashboardLayout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/product-replacement/showcase" element={<Dashboard />} />
         <Route path="/product-replacement" element={<ProductReplacement />} />
         <Route path="/product-replacement/details" element={<ProductReplacementDetails />} />
-        <Route path="/product-replacement/showcase" element={<ProductReplacementShowcase />} />
+        <Route path="/" element={<ProductReplacementShowcase />} />
         <Route path="/part-replacement" element={<PartReplacement />} />
         <Route path="/part-replacement/details" element={<PartReplacementDetails />} />
         <Route path="/reports" element={<Reports />} />

@@ -10,9 +10,9 @@ import { NavLink } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: GridIcon },
+  { to: '/', label: 'PR Showcase', icon: GridIcon },
   { to: '/product-replacement', label: 'Product Replacement', icon: BoxIcon },
-  { to: '/product-replacement/showcase', label: 'PR Showcase', icon: TvIcon },
+  { to: '/product-replacement/showcase', label: "Dashboard", icon: TvIcon },
   { to: '/part-replacement', label: 'Part Replacement', icon: CogIcon },
   { to: '/upload', label: 'Upload Data', icon: UploadIcon },
   // { to: '/settings', label: 'Settings', icon: SettingsIcon },

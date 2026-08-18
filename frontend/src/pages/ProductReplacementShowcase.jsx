@@ -159,15 +159,25 @@ export default function ProductReplacementShowcase() {
     }
   }, []);
 
+  const handleRefreshData = useCallback(() => {
+    refetchSummary();
+    refetchDetails();
+  }, [refetchSummary, refetchDetails]);
+
   useTVRemote({
     onLeft: handleToggleSlide,
     onRight: handleToggleSlide,
     onPlayPause: handleToggleAutoPlayCallback,
     onNext: handleToggleSlide,
+    onPrev: handleToggleSlide,
     onFullscreen: handleToggleFullscreenCallback,
+    onRed: handleToggleSlide,
+    onGreen: handleToggleAutoPlayCallback,
+    onYellow: handleToggleFullscreenCallback,
+    onBlue: handleRefreshData,
     onBack: () => {
       if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
     },
   });
