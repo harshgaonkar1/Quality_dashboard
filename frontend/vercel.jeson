@@ -1,7 +1,35 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/product-replacement/showcase/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/product-replacement/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/product-replacement/details/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/part-replacement/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/part-replacement/details/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/reports/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/upload",
       "destination": "/index.html"
     }
   ]
