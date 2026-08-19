@@ -190,9 +190,6 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
             <h3 className="text-xs font-extrabold text-ink-950 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
               <span>🥧</span> Product Share
             </h3>
-            <span className="text-[11px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
-              {activeDate ? `Date: ${formatDate(activeDate)}` : 'Single Day'}
-            </span>
           </div>
 
           {total === 0 ? (

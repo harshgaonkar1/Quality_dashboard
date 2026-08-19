@@ -185,10 +185,10 @@ export default function ProductReplacementShowcase() {
   // Table columns configuration
   const columns = [
     // { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
-    { key: 'zmac_date', label: 'Punch in Date ', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
+    // { key: 'zmac_date', label: 'Punch in Date ', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
     // { key: 'fd_zbrn_status', label: 'Status', sortable: true },
     { key: 'branch', label: 'Branch', sortable: true },
-    { key: 'ticket_no', label: 'Ticket No', sortable: true },
+    // { key: 'ticket_no', label: 'Ticket No', sortable: true },
     // { key: 'machine_status', label: 'Machine Status', sortable: true },
     { key: 'model', label: 'Machine Model', sortable: true },
     { key: 'serial_number', label: 'Serial Number', sortable: true },
@@ -310,6 +310,21 @@ export default function ProductReplacementShowcase() {
               <span className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
                 Current View: <strong className="text-ink-950 dark:text-white uppercase font-black">{activeSlide === 'pie' ? 'Pie Chart' : 'Data Table'}</strong>
+              </span>
+              <span className="text-[11px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
+                {date === 'latest'
+                  ? `Date: ${summaryData?.data?.activeDate || summaryData?.data?.latestDate
+                    ? new Date(summaryData?.data?.activeDate || summaryData?.data?.latestDate).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    })
+                    : ''}`
+                  : `Date: ${new Date(date).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })}`}
               </span>
               <span>
                 {autoPlay ? `Auto-switching in ${timeLeft}s` : 'Paused'}

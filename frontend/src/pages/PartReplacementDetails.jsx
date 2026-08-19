@@ -99,13 +99,12 @@ function RemarksCell({ row, isAdmin, openAdminModal }) {
       <button
         onClick={handleSave}
         disabled={saving}
-        className={`px-3 py-1.5 text-xs font-bold rounded shrink-0 transition-all cursor-pointer ${
-          saved
+        className={`px-3 py-1.5 text-xs font-bold rounded shrink-0 transition-all cursor-pointer ${saved
             ? 'bg-green-400 text-black'
             : errorMsg
-            ? 'bg-red-500 text-white'
-            : 'bg-green-500 hover:bg-green-400 text-black shadow-xs disabled:opacity-50'
-        }`}
+              ? 'bg-red-500 text-white'
+              : 'bg-green-500 hover:bg-green-400 text-black shadow-xs disabled:opacity-50'
+          }`}
       >
         {saving ? '...' : saved ? '✓ Saved' : errorMsg ? '⚠️ Error' : 'Save'}
       </button>
