@@ -31,7 +31,7 @@ export default function ProductReplacementShowcase() {
   const [activeSlide, setActiveSlide] = useState('pie');
   const [autoPlay, setAutoPlay] = useState(true);
   const [timeLeft, setTimeLeft] = useState(ROTATION_INTERVAL_SEC);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true);
 
   // Filters state (defaults to 'latest' to display latest date data for that day only, typeOfDamage defaults to 'Functional')
   const [typeOfDamage, setTypeOfDamage] = useState('Functional');
@@ -46,6 +46,33 @@ export default function ProductReplacementShowcase() {
   const debouncedSearch = useDebounce(search, 400);
 
   const containerRef = useRef(null);
+
+  // Auto-enter fullscreen mode when page opens / mounts
+  useEffect(() => {
+    const tryFullscreen = () => {
+      if (containerRef.current && !document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch(() => {
+          // Native browser fullscreen requires user gesture in some browsers; fixed overlay CSS handles full screen visually until user interacts
+        });
+      }
+    };
+
+    // Attempt immediately on mount
+    tryFullscreen();
+
+    // Trigger on first user click or keypress anywhere on screen
+    const handleFirstInteraction = () => {
+      tryFullscreen();
+    };
+
+    window.addEventListener('click', handleFirstInteraction, { once: true });
+    window.addEventListener('keydown', handleFirstInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, []);
 
   // 1. Fetch Summary Data (for Pie Chart)
   const summaryFetchFn = useCallback(
@@ -113,16 +140,18 @@ export default function ProductReplacementShowcase() {
 
   // Fullscreen mode handler
   function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch((err) => {
-        console.error('Error entering fullscreen:', err);
-      });
-      setIsFullscreen(true);
-    } else {
+    if (document.fullscreenElement) {
       document.exitFullscreen().catch((err) => {
         console.error('Error exiting fullscreen:', err);
       });
       setIsFullscreen(false);
+    } else if (isFullscreen) {
+      setIsFullscreen(false);
+    } else {
+      containerRef.current?.requestFullscreen().catch((err) => {
+        console.error('Error entering fullscreen:', err);
+      });
+      setIsFullscreen(true);
     }
   }
 
@@ -239,7 +268,7 @@ export default function ProductReplacementShowcase() {
                 Showcase Mode
               </span>
               <h2 className="font-display text-lg lg:text-2xl font-extrabold text-ink-950 dark:text-white tracking-tight">
-                Product Replacement Showcase
+                Machine Replacement - FQC
               </h2>
             </div>
 
@@ -277,7 +306,7 @@ export default function ProductReplacementShowcase() {
                   ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                   : 'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
                   }`}
-                title={autoPlay ? 'Pause 15s slideshow auto-rotation' : 'Resume 15s slideshow auto-rotation'}
+                title={autoPlay ? 'Pause 30s slideshow' : 'Resume 30s slideshow'}
               >
                 {autoPlay ? '⏸ Pause' : '▶ Play'}
               </button>
@@ -287,7 +316,7 @@ export default function ProductReplacementShowcase() {
                 tabIndex={0}
                 onClick={() => handleSelectSlide(activeSlide === 'pie' ? 'table' : 'pie')}
                 className="px-3 py-1.5 text-xs lg:text-sm font-extrabold rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
-                title="Switch to next slide immediately"
+                title="Switch to next slide"
               >
                 Next ➔
               </button>
@@ -297,9 +326,9 @@ export default function ProductReplacementShowcase() {
                 tabIndex={0}
                 onClick={toggleFullscreen}
                 className="px-3 py-1.5 text-xs lg:text-sm font-extrabold rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
-                title="Toggle 32 inch TV full screen mode"
+                title="Fullscreen mode"
               >
-                {isFullscreen ? '↙ Exit TV Mode' : 'TV Fullscreen'}
+                {isFullscreen ? '↙ Exit Fullscreen' : 'Fullscreen'}
               </button>
             </div>
           </div>
