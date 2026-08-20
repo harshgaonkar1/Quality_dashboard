@@ -25,8 +25,12 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
     isFirstRender.current = false;
   }, []);
 
-  const tlPercent = total > 0 ? ((tlCount / total) * 100).toFixed(1) : '0.0';
-  const flPercent = total > 0 ? ((flCount / total) * 100).toFixed(1) : '0.0';
+  const tlFuncTotal = (cards || []).reduce((sum, c) => sum + (c.tlFunc || 0), 0);
+  const flFuncTotal = (cards || []).reduce((sum, c) => sum + (c.flFunc || 0), 0);
+  const funcTotal = tlFuncTotal + flFuncTotal;
+
+  const tlPercent = funcTotal > 0 ? ((tlFuncTotal / funcTotal) * 100).toFixed(1) : '0.0';
+  const flPercent = funcTotal > 0 ? ((flFuncTotal / funcTotal) * 100).toFixed(1) : '0.0';
 
   const textColor = isAdmin ? '#4ade80' : isDark ? '#F1F5F9' : '#0F172A';
   const subTextColor = isAdmin ? '#22c55e' : isDark ? '#94A3B8' : '#64748B';
@@ -61,7 +65,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
               ● ${this.point.name}
             </div>
             <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 11px;">
-              <span>Replacements:</span>
+              <span>Functional:</span>
               <span style="font-weight: 700;">${this.y.toLocaleString()}</span>
             </div>
             <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 11px; margin-top: 1px;">
@@ -101,14 +105,14 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
         data: [
           {
             name: 'TL (Top Load)',
-            y: tlCount,
+            y: tlFuncTotal,
             color: tlColor,
             sliced: true,
             selected: true,
           },
           {
             name: 'FL (Front Load)',
-            y: flCount,
+            y: flFuncTotal,
             color: flColor,
           },
         ],
@@ -127,10 +131,10 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
           }`}>
           <div>
             <span className="text-[11px] font-black uppercase tracking-wider text-ink-500 dark:text-mist-400 block">
-              Total Replacements
+              Total Replacements (Functional Damages)
             </span>
             <p className="text-xl lg:text-2xl font-extrabold font-display tracking-tight text-ink-950 dark:text-white mt-0.5">
-              {total.toLocaleString()}
+              {funcTotal.toLocaleString()}
             </p>
           </div>
           <span className="w-8 h-8 lg:w-9 lg:h-9 rounded-lg bg-mist-200/80 dark:bg-ink-800 flex items-center justify-center text-sm shrink-0">
@@ -146,11 +150,11 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
-                TL Models (Top Load)
+                TL Models
               </span>
             </div>
             <p className="text-xl lg:text-2xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400 mt-0.5">
-              {tlCount.toLocaleString()}
+              {tlFuncTotal.toLocaleString()}
             </p>
           </div>
           <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0">
@@ -166,11 +170,11 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
-                FL Models (Front Load)
+                FL Models
               </span>
             </div>
             <p className="text-xl lg:text-2xl font-extrabold font-display tracking-tight text-sky-600 dark:text-sky-400 mt-0.5">
-              {flCount.toLocaleString()}
+              {flFuncTotal.toLocaleString()}
             </p>
           </div>
           <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
@@ -192,7 +196,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
             </h3>
           </div>
 
-          {total === 0 ? (
+          {funcTotal === 0 ? (
             <div className="py-8 text-center text-ink-400 dark:text-ink-500 text-xs my-auto">
               No replacement data for selected day
             </div>
@@ -223,7 +227,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
                   TL (Top Load)
                 </span>
                 <span className="text-xs font-black text-rose-700 dark:text-rose-300 bg-rose-200/80 dark:bg-rose-900/60 px-2 py-0.5 rounded-full">
-                  Total: {tlCount}
+                  Total: {tlFuncTotal}
                 </span>
               </div>
 
@@ -257,7 +261,7 @@ export default function TLFLPieChart({ total = 0, tlCount = 0, flCount = 0, card
                   FL (Front Load)
                 </span>
                 <span className="text-xs font-black text-sky-700 dark:text-sky-300 bg-sky-200/80 dark:bg-sky-900/60 px-2 py-0.5 rounded-full">
-                  Total: {flCount}
+                  Total: {flFuncTotal}
                 </span>
               </div>
 

@@ -33,8 +33,8 @@ export default function ProductReplacementShowcase() {
   const [timeLeft, setTimeLeft] = useState(ROTATION_INTERVAL_SEC);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Filters state (defaults to 'latest' to display latest date data for that day only)
-  const [typeOfDamage, setTypeOfDamage] = useState('');
+  // Filters state (defaults to 'latest' to display latest date data for that day only, typeOfDamage defaults to 'Functional')
+  const [typeOfDamage, setTypeOfDamage] = useState('Functional');
   const [productCategory, setProductCategory] = useState('');
   const [date, setDate] = useState('latest');
 
@@ -49,7 +49,7 @@ export default function ProductReplacementShowcase() {
 
   // 1. Fetch Summary Data (for Pie Chart)
   const summaryFetchFn = useCallback(
-    () => fetchDashboardSummary({ typeOfDamage, productCategory, date }),
+    () => fetchDashboardSummary({ typeOfDamage: typeOfDamage || 'Functional', productCategory, date }),
     [typeOfDamage, productCategory, date]
   );
   const {
@@ -63,7 +63,7 @@ export default function ProductReplacementShowcase() {
   const detailsFetchFn = useCallback(
     () =>
       fetchDashboardDetails({
-        typeOfDamage: typeOfDamage || undefined,
+        typeOfDamage: typeOfDamage || 'Functional',
         productCategory: productCategory || undefined,
         date: date || undefined,
         page,
@@ -376,7 +376,7 @@ export default function ProductReplacementShowcase() {
         <div className={activeSlide === 'table' ? 'block h-full flex flex-col justify-between overflow-hidden space-y-2' : 'hidden'}>
           <div className="flex items-center justify-between shrink-0">
             <h3 className="text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
-              <span>📋</span> Product Replacement Records Table
+              <span>📋</span> Product Replacement Functional Defects Table
             </h3>
             {detailsData && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-mist-200 dark:bg-ink-800 text-ink-700 dark:text-mist-300">
