@@ -22,7 +22,7 @@ import { formatDate } from '../utils/formatDate';
 import { useAdmin } from '../context/AdminContext';
 
 const ROTATION_INTERVAL_SEC = 30;
-const PAGE_SIZE = 7; // Fits perfectly into single frame 32-inch TV screen view without vertical scroll
+const PAGE_SIZE = 50; // High capacity page size so all entries fit on screen for TV showcase view
 
 export default function ProductReplacementShowcase() {
   const { isAdmin } = useAdmin();
@@ -32,6 +32,7 @@ export default function ProductReplacementShowcase() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [timeLeft, setTimeLeft] = useState(ROTATION_INTERVAL_SEC);
   const [isFullscreen, setIsFullscreen] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Filters state (defaults to 'latest' to display latest date data for that day only, typeOfDamage defaults to 'Functional')
   const [typeOfDamage, setTypeOfDamage] = useState('Functional');
@@ -46,6 +47,20 @@ export default function ProductReplacementShowcase() {
   const debouncedSearch = useDebounce(search, 400);
 
   const containerRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Auto-close hamburger menu on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   // Auto-enter fullscreen mode when page opens / mounts
   useEffect(() => {
@@ -213,26 +228,10 @@ export default function ProductReplacementShowcase() {
 
   // Table columns configuration
   const columns = [
-    // { key: 'complaint_number', label: 'ZMAC ID', sortable: true },
-    // { key: 'zmac_date', label: 'Punch in Date ', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
-    // { key: 'fd_zbrn_status', label: 'Status', sortable: true },
     { key: 'branch', label: 'Branch', sortable: true },
-    // { key: 'ticket_no', label: 'Ticket No', sortable: true },
-    // { key: 'machine_status', label: 'Machine Status', sortable: true },
     { key: 'model', label: 'Machine Model', sortable: true },
     { key: 'serial_number', label: 'Serial Number', sortable: true },
     { key: 'type_of_damage', label: 'Damage Type', sortable: true },
-    // {
-    //   key: 'ageing_category',
-    //   label: 'Ageing Category',
-    //   sortable: true,
-    //   render: (row) => {
-    //     const days = row.ageing_days;
-    //     if (days === 0 || days === '0') return 'Installation Failure';
-    //     if (days !== null && days !== undefined && !isNaN(days) && Number(days) > 0 && Number(days) <= 90) return '0-3 Months';
-    //     return row.ageing_category || '0-3 Months';
-    //   }
-    // },
     { key: 'admin_comment', label: 'Remarks', sortable: false }
   ];
 
@@ -251,96 +250,118 @@ export default function ProductReplacementShowcase() {
     <div
       ref={containerRef}
       className={`max-w-[1720px] w-full mx-auto flex flex-col justify-between ${isFullscreen
-        ? 'fixed inset-0 z-50 p-3 lg:p-4.5 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden box-border space-y-2'
-        : 'w-full h-full space-y-3'
+        ? 'fixed inset-0 z-50 p-2.5 lg:p-3.5 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden box-border space-y-1.5'
+        : 'w-full h-full space-y-2'
         }`}
     >
       {/* Header + Filter controls combined into compact single-frame top section */}
-      <div className="space-y-2.5 shrink-0">
+      <div className="space-y-1.5 shrink-0">
         {/* Top Controls Header */}
-        <div className={`p-3 lg:p-4 rounded-xl border transition-all ${isAdmin
+        <div className={`p-2.5 lg:p-3 rounded-xl border transition-all ${isAdmin
           ? 'bg-neutral-950 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
           : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-xs'
           }`}>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-signal/20 text-signal-dark dark:text-signal border border-signal/40 uppercase tracking-widest animate-pulse">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2 py-0.5 rounded-full text-[10px] lg:text-xs font-black bg-signal/20 text-signal-dark dark:text-signal border border-signal/40 uppercase tracking-widest animate-pulse">
                 Showcase Mode
               </span>
-              <h2 className="font-display text-lg lg:text-2xl font-extrabold text-ink-950 dark:text-white tracking-tight">
+              <h2 className="font-display text-base lg:text-xl font-extrabold text-ink-950 dark:text-white tracking-tight">
                 Machine Replacement - FQC
               </h2>
             </div>
 
-            {/* Action Bar & Mode Switcher */}
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {/* View Switcher Tabs */}
-              <div className="inline-flex p-1 rounded-xl bg-mist-200/80 dark:bg-ink-950 border border-mist-300 dark:border-ink-800">
-                <button
-                  tabIndex={0}
-                  onClick={() => handleSelectSlide('pie')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs lg:text-sm font-extrabold transition-all cursor-pointer ${activeSlide === 'pie'
-                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs ring-2 ring-signal/50'
-                    : 'text-ink-600 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white'
-                    }`}
-                >
-                  🥧 Pie Chart View
-                </button>
-                <button
-                  tabIndex={0}
-                  onClick={() => handleSelectSlide('table')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs lg:text-sm font-extrabold transition-all cursor-pointer ${activeSlide === 'table'
-                    ? 'bg-white dark:bg-ink-800 text-ink-950 dark:text-white shadow-xs ring-2 ring-signal/50'
-                    : 'text-ink-600 dark:text-mist-400 hover:text-ink-950 dark:hover:text-white'
-                    }`}
-                >
-                  📋 Data Table View
-                </button>
-              </div>
-
-              {/* Play / Pause Rotation Toggle */}
+            {/* Hamburger Menu Trigger & Popover */}
+            <div className="relative" ref={menuRef}>
               <button
                 tabIndex={0}
-                onClick={toggleAutoPlay}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs lg:text-sm font-extrabold border transition-all cursor-pointer ${autoPlay
-                  ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
-                  : 'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
-                  }`}
-                title={autoPlay ? 'Pause 30s slideshow' : 'Resume 30s slideshow'}
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="p-1.5 lg:p-2 rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-950 dark:text-white hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                title="Menu Controls"
+                aria-label="Toggle Navigation Menu"
               >
-                {autoPlay ? '⏸ Pause' : '▶ Play'}
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  {isMenuOpen ? (
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                  ) : (
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                  )}
+                </svg>
               </button>
 
-              {/* Next View Button */}
-              <button
-                tabIndex={0}
-                onClick={() => handleSelectSlide(activeSlide === 'pie' ? 'table' : 'pie')}
-                className="px-3 py-1.5 text-xs lg:text-sm font-extrabold rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
-                title="Switch to next slide"
-              >
-                Next ➔
-              </button>
+              {/* Dropdown Popover */}
+              {isMenuOpen && (
+                <div className="absolute right-0 top-11 z-50 w-60 p-2.5 rounded-2xl bg-white dark:bg-ink-900 border border-mist-300 dark:border-ink-700 shadow-2xl space-y-2 font-sans">
+                  <div className="text-[10px] font-extrabold text-ink-400 dark:text-mist-400 uppercase tracking-wider px-1">
+                    View Mode
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => { handleSelectSlide('pie'); setIsMenuOpen(false); }}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer w-full text-left ${activeSlide === 'pie'
+                        ? 'bg-signal/15 text-signal-dark dark:text-signal border border-signal/40'
+                        : 'text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800'
+                        }`}
+                    >
+                      <span></span> Pie Chart View
+                    </button>
+                    <button
+                      onClick={() => { handleSelectSlide('table'); setIsMenuOpen(false); }}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer w-full text-left ${activeSlide === 'table'
+                        ? 'bg-signal/15 text-signal-dark dark:text-signal border border-signal/40'
+                        : 'text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800'
+                        }`}
+                    >
+                      <span></span> Data Table View
+                    </button>
+                  </div>
 
-              {/* Fullscreen Toggle */}
-              <button
-                tabIndex={0}
-                onClick={toggleFullscreen}
-                className="px-3 py-1.5 text-xs lg:text-sm font-extrabold rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-800 dark:text-mist-200 hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer"
-                title="Fullscreen mode"
-              >
-                {isFullscreen ? '↙ Exit Fullscreen' : 'Fullscreen'}
-              </button>
+                  <div className="border-t border-mist-200 dark:border-ink-800 pt-1.5">
+                    <div className="text-[10px] font-extrabold text-ink-400 dark:text-mist-400 uppercase tracking-wider px-1 mb-1">
+                      Controls
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => { toggleAutoPlay(); setIsMenuOpen(false); }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800 transition-all cursor-pointer w-full text-left"
+                      >
+                        {/* <span>{autoPlay ? '⏸' : '▶'}</span> */}
+                        {autoPlay ? 'Pause Slideshow' : 'Play Slideshow'}
+                      </button>
+                      <button
+                        onClick={() => { handleSelectSlide(activeSlide === 'pie' ? 'table' : 'pie'); setIsMenuOpen(false); }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800 transition-all cursor-pointer w-full text-left"
+                      >
+                        Next View
+                      </button>
+                      <button
+                        onClick={() => { toggleFullscreen(); setIsMenuOpen(false); }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800 transition-all cursor-pointer w-full text-left"
+                      >
+                        {/* <span>{isFullscreen ? '↙' : '⛶'}</span> */}
+                        {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                      </button>
+                      <button
+                        onClick={() => { handleRefreshData(); setIsMenuOpen(false); }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800 transition-all cursor-pointer w-full text-left"
+                      >
+                        <span></span> Refresh Data
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Animated 15s Timer Countdown Bar */}
-          <div className="mt-2 pt-1.5 border-t border-mist-200 dark:border-ink-800/60">
-            <div className="flex items-center justify-between text-xs lg:text-sm font-bold text-ink-500 dark:text-mist-400 mb-1">
-              <span className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
+          {/* Animated Timer Countdown Bar */}
+          <div className="mt-1.5 pt-1 border-t border-mist-200 dark:border-ink-800/60">
+            <div className="flex items-center justify-between text-xs font-bold text-ink-500 dark:text-mist-400 mb-0.5">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
                 Current View: <strong className="text-ink-950 dark:text-white uppercase font-black">{activeSlide === 'pie' ? 'Pie Chart' : 'Data Table'}</strong>
               </span>
-              <span className="text-[11px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
+              <span className="text-[10px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
                 {date === 'latest'
                   ? `Date: ${summaryData?.data?.activeDate || summaryData?.data?.latestDate
                     ? new Date(summaryData?.data?.activeDate || summaryData?.data?.latestDate).toLocaleDateString('en-GB', {
@@ -360,7 +381,7 @@ export default function ProductReplacementShowcase() {
               </span>
             </div>
 
-            <div className="w-full h-2 rounded-full overflow-hidden bg-mist-200 dark:bg-ink-800">
+            <div className="w-full h-1.5 rounded-full overflow-hidden bg-mist-200 dark:bg-ink-800">
               <div
                 className={`h-full transition-all duration-1000 ease-linear ${autoPlay ? 'bg-signal' : 'bg-amber-500'
                   }`}
@@ -369,19 +390,6 @@ export default function ProductReplacementShowcase() {
             </div>
           </div>
         </div>
-
-        {/* Filter Bar for Showcase Data */}
-        {/* <FilterBar
-          // search={activeSlide === 'table' ? search : ''}
-          // onSearchChange={activeSlide === 'table' ? setSearch : undefined}
-          // date={date === 'latest' ? (summaryData?.data?.activeDate || summaryData?.data?.latestDate || '') : date}
-          // onDateChange={(val) => setDate(val || 'latest')}
-          dateLabel="ZMAC Date"
-          typeOfDamage={typeOfDamage}
-          onDamageTypeChange={setTypeOfDamage}
-          productCategory={productCategory}
-          onProductCategoryChange={setProductCategory}
-        /> */}
       </div>
 
       {/* Main Slide Area: Both kept mounted in DOM to PREVENT re-animation on slide switch */}
@@ -402,13 +410,13 @@ export default function ProductReplacementShowcase() {
         </div>
 
         {/* Slide 2: Data Table (Always mounted, hidden when activeSlide !== 'table') */}
-        <div className={activeSlide === 'table' ? 'block h-full flex flex-col justify-between overflow-hidden space-y-2' : 'hidden'}>
+        <div className={activeSlide === 'table' ? 'block h-full flex flex-col justify-between overflow-hidden space-y-1.5' : 'hidden'}>
           <div className="flex items-center justify-between shrink-0">
-            <h3 className="text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
+            <h3 className="text-xs lg:text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
               <span>📋</span> Product Replacement Functional Defects Table
             </h3>
             {detailsData && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-mist-200 dark:bg-ink-800 text-ink-700 dark:text-mist-300">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-mist-200 dark:bg-ink-800 text-ink-700 dark:text-mist-300">
                 Total Records: {detailsData.data.total.toLocaleString()}
               </span>
             )}
@@ -429,6 +437,7 @@ export default function ProductReplacementShowcase() {
                 pageSize={detailsData.data.pageSize}
                 total={detailsData.data.total}
                 onPageChange={setPage}
+                compact={true}
               />
             </div>
           )}
