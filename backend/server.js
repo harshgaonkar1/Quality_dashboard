@@ -55,8 +55,8 @@ app.use(errorHandler);
             console.log(`🔄 Part Grouping QA lookup synced: ${res.updatedCount} records updated (${res.mappingsCount} mappings).`);
           }
         })
-        .catch(() => {});
-    } catch (e) {}
+        .catch(() => { });
+    } catch (e) { }
   });
 })();
 

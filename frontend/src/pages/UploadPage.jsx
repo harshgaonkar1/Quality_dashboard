@@ -103,9 +103,9 @@ export default function UploadPage() {
           <FileUploader label="Part Grouping Lookup Master" file={groupingFile} onFileSelect={setGroupingFile} />
         </div>
 
-        <p className="text-xs text-ink-400 dark:text-mist-500 bg-mist-100 dark:bg-ink-900/60 p-3 rounded-lg border border-mist-200 dark:border-ink-800">
+        {/* <p className="text-xs text-ink-400 dark:text-mist-500 bg-mist-100 dark:bg-ink-900/60 p-3 rounded-lg border border-mist-200 dark:border-ink-800">
           💡 <strong>QA Lookup Engine:</strong> Uploading the Part Grouping master maps <code>Item Code</code> / <code>Part Code</code> &rarr; <code>Part Grouping</code> name and automatically updates the <code>part_grouping</code> column in <code>part_replacement</code>.
-        </p>
+        </p> */}
 
 
         {uploading && (
