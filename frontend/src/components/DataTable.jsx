@@ -7,20 +7,24 @@
 // ============================================================
 
 export default function DataTable({
-  columns,
-  rows,
+  columns = [],
+  rows = [],
+  data,
   sortBy,
   sortDir,
-  onSort,
-  page,
-  pageSize,
-  total,
-  onPageChange,
+  onSort = () => {},
+  page = 1,
+  pageSize = 50,
+  total = 0,
+  onPageChange = () => {},
   compact = false,
 }) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const startRow = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endRow = Math.min(page * pageSize, total);
+  const tableRows = Array.isArray(rows) ? rows : (Array.isArray(data) ? data : []);
+  const safeTotal = typeof total === 'number' && !isNaN(total) ? total : tableRows.length;
+  const safePageSize = pageSize || 50;
+  const totalPages = Math.max(1, Math.ceil(safeTotal / safePageSize));
+  const startRow = safeTotal === 0 ? 0 : (page - 1) * safePageSize + 1;
+  const endRow = Math.min(page * safePageSize, safeTotal);
 
   const thPadding = compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm';
   const tdPadding = compact ? 'px-3 py-1.5 text-xs font-medium' : 'px-4 py-3 text-sm';
@@ -54,14 +58,14 @@ export default function DataTable({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {tableRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className={`text-center text-ink-400 dark:text-ink-500 ${compact ? 'px-3 py-6' : 'px-4 py-12'}`}>
+                <td colSpan={columns.length || 1} className={`text-center text-ink-400 dark:text-ink-500 ${compact ? 'px-3 py-6' : 'px-4 py-12'}`}>
                   No records match the current filters.
                 </td>
               </tr>
             ) : (
-              rows.map((row, idx) => (
+              tableRows.map((row, idx) => (
                 <tr
                   key={row.serial_number || row.complaint_number || idx}
                   className="border-b border-mist-200 dark:border-ink-800/60 last:border-0 hover:bg-mist-100/60 dark:hover:bg-ink-800/40 transition-colors"
@@ -77,6 +81,7 @@ export default function DataTable({
           </tbody>
         </table>
       </div>
+
 
       <div className={`flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-mist-300 dark:border-ink-800 bg-white dark:bg-ink-900 ${footerPadding}`}>
         <span className="text-xs text-ink-500 dark:text-mist-400">

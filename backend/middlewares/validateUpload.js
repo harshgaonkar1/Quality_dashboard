@@ -9,33 +9,66 @@
 const REQUIRED_COLUMN_GROUPS = [
   {
     name: 'Serial Number',
-    aliases: ['Serial Number', 'serial number', 'Serial No', 'Serial_Number', 'SerialNo', 'SERIAL NUMBER'],
+    aliases: ['Serial Number', 'serial number', 'Serial No', 'Serial_Number', 'SerialNo', 'SERIAL NUMBER', 'Serial', 'serial'],
   },
   {
-    name: 'ZMAC ID / Complaint Number',
-    aliases: ['ZMAC ID', 'ZMAC_ID', 'ZMACID', 'Complaint Number', 'Complaint No', 'Complaint', 'SPU ID', 'SPUID'],
+    name: 'Branch',
+    aliases: ['Branch', 'branch', 'BRANCH', 'Branch Name', 'branch name', 'Branch_Name', 'ZBRN'],
   },
   {
-    name: 'Product Description / Model',
-    aliases: ['Product Description', 'PRODUCT DESCRIPTION', 'Product_Description', 'Model', 'Model Name', 'MODEL NAME'],
+    name: 'Franchise',
+    aliases: ['Franchise', 'franchise', 'FRANCHISE', 'Franchisee Name', 'franchisee name', 'Franchisee_Name', 'Franchisee ID', 'franchisee id'],
   },
   {
-    name: 'Product Category / Mat Cat',
-    aliases: ['mat cat', 'Mat Cat', 'MAT CAT', 'mat_cat', 'Material Category', 'Mat_Cat', 'Product Category', 'PRODUCT CATEGORY'],
+    name: 'SPU Status',
+    aliases: ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue', 'Status', 'status'],
+  },
+  {
+    name: 'SPU Created Date / DOC',
+    aliases: ['SPU Created Date', 'spu created date', 'SPU_Created_Date', 'spu_created_date', 'SPU Date', 'spu date', 'SPU Created Data', 'spu created data', 'ticket posting date', 'Ticket Posting Date', 'DOC', 'doc', 'Date of Complaint', 'Complaint Date', 'Posting Date'],
+  },
+  {
+    name: 'Ticket / Complaint Number',
+    aliases: ['Ticket', 'ticket', 'TICKET', 'Ticket No', 'ticket no', 'Ticket_No', 'ticket_no', 'Ticket Number', 'SPU NO', 'spu no', 'SPU_NO', 'ZMAC ID', 'ZMAC_ID', 'Complaint Number', 'Complaint No', 'Complaint'],
   },
   {
     name: 'Machine Status',
-    aliases: ['machine status', 'Machine Status', 'MACHINE STATUS', 'machine_status', 'Status'],
+    aliases: ['Machine Status', 'machine status', 'MACHINE STATUS', 'machine_status', 'Machine_Status', 'Status', 'status'],
+  },
+  {
+    name: 'Sub Category / Product Category',
+    aliases: ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat', 'Sub_Cat', 'Product Category', 'product category', 'mat cat', 'Mat Cat'],
+  },
+  {
+    name: 'Product Description / Model',
+    aliases: ['Model Name', 'model name', 'MODEL NAME', 'Model_Name', 'Model', 'model', 'Product Description', 'PRODUCT DESCRIPTION', 'Product_Description'],
   },
   {
     name: 'DOI',
-    aliases: ['DOI', 'doi', 'Date of Installation', 'Installation Date'],
+    aliases: ['DOI', 'doi', 'Date of Installation', 'Installation Date', 'DOI ', 'Installation_Date'],
   },
   {
-    name: 'DOC / SPU Created Date',
-    aliases: ['ticket posting date', 'DOC', 'Date of Complaint', 'Complaint Date', 'Posting Date', 'SPU Created Date', 'SPU Created Data'],
+    name: 'Item Code / Spare Code',
+    aliases: ['Item Code', 'item code', 'ItemCode', 'ITEM CODE', 'Item_Code', 'item_code', 'Spare Code', 'spare code', 'SpareCode', 'Part Code', 'part code', 'PartCode', 'part_code', 'Spare', 'spare'],
+  },
+  {
+    name: 'Description / Part Description',
+    aliases: ['Description', 'description', 'DESCRIPTION', 'Part Description', 'part description', 'PartDescription', 'Spare Desc', 'spare desc', 'Spare Description', 'Part Name', 'part name'],
+  },
+  {
+    name: 'Approved Qty',
+    aliases: ['Approved Qty', 'approved qty', 'Approved qty', 'APPROVED QTY', 'App Qty', 'app qty', 'App_Qty', 'Approved_Qty', 'approved_qty', 'Approved Quantity', 'approved quantity'],
+  },
+  {
+    name: 'Rej Qty',
+    aliases: ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'rej_qty', 'RejQty', 'Rejected Qty', 'Reject Qty', 'rejected qty'],
+  },
+  {
+    name: 'Part Grouping',
+    aliases: ['Part Grouping', 'part grouping', 'PART GROUPING', 'Part_Grouping', 'part_grouping', 'Part Group', 'part group', 'Grouping', 'grouping', 'Spare Group', 'spare group'],
   },
 ];
+
 
 /**
  * Helper to get a field value from a row object using multiple header aliases.

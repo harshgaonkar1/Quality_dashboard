@@ -72,6 +72,7 @@ async function handleSingleFileUpload(file, uploadType) {
  * Expects multipart/form-data with fields:
  *   productReplacement (file, optional)
  *   partReplacement (file, optional)
+ *   partGrouping (file, optional)
  * At least one file must be provided.
  */
 async function uploadFiles(req, res, next) {
@@ -79,9 +80,10 @@ async function uploadFiles(req, res, next) {
     const files = req.files || {};
     const productFile = files.productReplacement?.[0];
     const partFile = files.partReplacement?.[0];
+    const groupingFile = files.partGrouping?.[0];
 
-    if (!productFile && !partFile) {
-      return error(res, 'Please upload at least one file: productReplacement or partReplacement.', 400);
+    if (!productFile && !partFile && !groupingFile) {
+      return error(res, 'Please upload at least one file: productReplacement, partReplacement, or partGrouping.', 400);
     }
 
     const results = {};
@@ -91,6 +93,9 @@ async function uploadFiles(req, res, next) {
     }
     if (partFile) {
       results.partReplacement = await handleSingleFileUpload(partFile, 'PART_REPLACEMENT');
+    }
+    if (groupingFile) {
+      results.partGrouping = await handleSingleFileUpload(groupingFile, 'PART_GROUPING');
     }
 
     return success(res, results, 'Upload processed successfully');
@@ -103,3 +108,4 @@ async function uploadFiles(req, res, next) {
 }
 
 module.exports = { uploadFiles };
+

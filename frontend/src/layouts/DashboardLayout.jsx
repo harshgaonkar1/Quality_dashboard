@@ -16,13 +16,19 @@ import { useTVRemote } from '../hooks/useTVRemote';
 
 const PAGE_TITLES = {
   '/': 'Machine Replacement - FQC',
+  '/fl-analytics': 'Front Load (FL) Replacement Analytics',
+  '/fl-part-replacement': 'Front Load (FL) Replacement Analytics',
   '/product-replacement': 'Product Replacement',
   '/product-replacement/showcase': 'Product Replacement Showcase',
   '/part-replacement': 'Part Replacement',
+  '/part-replacement/showcase': 'Part Replacement Showcase',
+  '/part-showcase': 'Part Replacement Showcase',
   '/reports': 'Reports',
   '/settings': 'Settings',
   '/upload': 'Upload Data',
 };
+
+
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);

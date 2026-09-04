@@ -17,13 +17,18 @@ const { getFieldValue } = require('../middlewares/validateUpload');
  * skipped and why.
  *
  * @param {Array<{rowNumber:number, data:object}>} rawRows
- * @param {'PRODUCT_REPLACEMENT'|'PART_REPLACEMENT'} uploadType
+ * @param {'PRODUCT_REPLACEMENT'|'PART_REPLACEMENT'|'PART_GROUPING'} uploadType
  * @returns {{ records: object[], skipped: object[] }}
  */
 function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
+  if (uploadType === 'PART_GROUPING') {
+    return processGroupingRows(rawRows);
+  }
+
   const records = [];
   const skipped = [];
   const seenSerialNumbers = new Set();
+
 
   for (const { rowNumber, data } of rawRows) {
     const serialNumber = getFieldValue(data, ['serial number', 'Serial Number', 'Serial No', 'Serial_Number', 'SerialNo', 'SERIAL NUMBER']);
@@ -34,9 +39,14 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       continue;
     }
 
-    if (seenSerialNumbers.has(serialNumber)) {
-      skipped.push({ rowNumber, reason: 'Duplicate Serial Number within file', complaintNumber: complaintNumber || null, serialNumber });
-      continue;
+    // Only PRODUCT_REPLACEMENT enforces 1 row per machine serial number.
+    // PART_REPLACEMENT allows multiple parts replaced on the same machine/serial number.
+    if (uploadType === 'PRODUCT_REPLACEMENT') {
+      if (seenSerialNumbers.has(serialNumber)) {
+        skipped.push({ rowNumber, reason: 'Duplicate Serial Number within file', complaintNumber: complaintNumber || null, serialNumber });
+        continue;
+      }
+      seenSerialNumbers.add(serialNumber);
     }
 
     // Common fields
@@ -107,35 +117,53 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
 
     // Part Replacement Specific Filters
     if (uploadType === 'PART_REPLACEMENT') {
-      const spuStatus = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue']);
-      const cleanSpuStatus = spuStatus ? spuStatus.replace(/\s+/g, '').toLowerCase() : '';
+      // 1. SPU Status: only take ClosedByStoreExecutive
+      const spuStatus = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue', 'Status', 'status']);
+      const cleanSpuStatus = spuStatus ? spuStatus.replace(/[\s_-]+/g, '').toLowerCase() : '';
       if (cleanSpuStatus !== 'closedbystoreexecutive') {
         skipped.push({ rowNumber, reason: `SPU Status '${spuStatus || 'N/A'}' is not ClosedByStoreExecutive`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
 
+      // 2. Machine Status: only take Warranty
       if (!normalizedMachineStatus || normalizedMachineStatus.toLowerCase() !== 'warranty') {
         skipped.push({ rowNumber, reason: `Machine Status '${machineStatus || 'N/A'}' is not Warranty`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
 
-      // Product Category: only consider WM and WD
-      if (!normalizedMatCat || (normalizedMatCat !== 'WM' && normalizedMatCat !== 'WD')) {
-        skipped.push({ rowNumber, reason: `Product Category '${productCat || 'N/A'}' is not WM or WD`, complaintNumber: complaintNumber || null, serialNumber });
+      // 3. Sub Category: from this take FLu, TL, TLU for FL and TL mapping
+      const rawSubCat = getFieldValue(data, ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat', 'Sub_Cat']);
+      let mappedSubCategory = null;
+      if (rawSubCat) {
+        const upperSub = rawSubCat.trim().toUpperCase();
+        if (upperSub === 'FLU' || upperSub === 'FL') {
+          mappedSubCategory = 'FL';
+        } else if (upperSub === 'TL' || upperSub === 'TLU' || upperSub === 'TLM') {
+          mappedSubCategory = 'TL';
+        }
+      }
+      if (!mappedSubCategory && rawModel) {
+        const upperModel = rawModel.trim().toUpperCase();
+        if (upperModel.startsWith('TL')) mappedSubCategory = 'TL';
+        else if (upperModel.startsWith('FL')) mappedSubCategory = 'FL';
+      }
+
+      if (!mappedSubCategory || (mappedSubCategory !== 'FL' && mappedSubCategory !== 'TL')) {
+        skipped.push({ rowNumber, reason: `Sub Category '${rawSubCat || 'N/A'}' is not FLu, TL, or TLU`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
 
-      // Approved Qty: Approved qty >= 1 (or > 1)
-      const approvedQtyRaw = getFieldValue(data, ['Approved qty', 'Approved Qty', 'APPROVED QTY', 'App Qty', 'App_Qty', 'Approved_Qty', 'Approved Quantity']);
-      const approvedQty = (approvedQtyRaw !== null && approvedQtyRaw !== undefined) ? Number(approvedQtyRaw) : null;
-      if (approvedQty !== null && (isNaN(approvedQty) || approvedQty < 1)) {
-        skipped.push({ rowNumber, reason: `Approved Qty '${approvedQtyRaw}' is not >= 1`, complaintNumber: complaintNumber || null, serialNumber });
+      // 4. Approved Qty: Approved qty >= 1
+      const approvedQtyRaw = getFieldValue(data, ['Approved qty', 'Approved Qty', 'APPROVED QTY', 'App Qty', 'app qty', 'App_Qty', 'Approved_Qty', 'approved_qty', 'Approved Quantity', 'approved quantity']);
+      const approvedQty = (approvedQtyRaw !== null && approvedQtyRaw !== undefined && String(approvedQtyRaw).trim() !== '') ? Number(approvedQtyRaw) : null;
+      if (approvedQty === null || isNaN(approvedQty) || approvedQty < 1) {
+        skipped.push({ rowNumber, reason: `Approved Qty '${approvedQtyRaw ?? 'empty'}' is not >= 1`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
 
-      // Rej Qty: Rej qty = 0
-      const rejQtyRaw = getFieldValue(data, ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'RejQty', 'Rejected Qty', 'Reject Qty']);
-      const rejQty = (rejQtyRaw !== null && rejQtyRaw !== undefined) ? Number(rejQtyRaw) : 0;
+      // 5. Rej Qty: Rej qty = 0
+      const rejQtyRaw = getFieldValue(data, ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'rej_qty', 'RejQty', 'Rejected Qty', 'Reject Qty', 'rejected qty']);
+      const rejQty = (rejQtyRaw !== null && rejQtyRaw !== undefined && String(rejQtyRaw).trim() !== '') ? Number(rejQtyRaw) : 0;
       if (isNaN(rejQty) || rejQty !== 0) {
         skipped.push({ rowNumber, reason: `Rej Qty '${rejQtyRaw}' is not 0`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
@@ -144,14 +172,14 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
 
     seenSerialNumbers.add(serialNumber);
 
-    // Sub Category handling (FLU -> FL, TLM and TL -> TL)
-    const rawSubCat = getFieldValue(data, ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat']);
+    // Sub Category handling (FLU -> FL, TL/TLU/TLM -> TL)
+    const rawSubCat = getFieldValue(data, ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat', 'Sub_Cat']);
     let subCategory = null;
     if (rawSubCat) {
       const upperSub = rawSubCat.trim().toUpperCase();
-      if (upperSub === 'FLU' || upperSub.startsWith('FL')) {
+      if (upperSub === 'FLU' || upperSub === 'FL') {
         subCategory = 'FL';
-      } else if (upperSub === 'TLM' || upperSub === 'TL' || upperSub === 'TLU' || upperSub.startsWith('TL')) {
+      } else if (upperSub === 'TL' || upperSub === 'TLU' || upperSub === 'TLM') {
         subCategory = 'TL';
       } else {
         subCategory = upperSub;
@@ -162,37 +190,40 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       else if (upperModel.startsWith('FL')) subCategory = 'FL';
     }
 
-    // DOC handling: for Part Replacement, DOC = SPU Created Date / SPU Created Data
-    const rawSpuCreatedDate = getFieldValue(data, ['SPU Created Date', 'spu created date', 'SPU_Created_Date', 'SPU Date', 'SPU Created Data', 'spu created data']);
-    const rawDoc = getFieldValue(data, ['ticket posting date', 'Ticket Posting Date', 'DOC', 'Date of Complaint', 'Complaint Date', 'Posting Date']);
+    // DOC handling: for Part Replacement, take SPU Created Date as DOC to calculate ageing
+    const rawSpuCreatedDate = getFieldValue(data, ['SPU Created Date', 'spu created date', 'SPU_Created_Date', 'spu_created_date', 'SPU Date', 'spu date', 'SPU Created Data', 'spu created data']);
+    const rawDoc = getFieldValue(data, ['ticket posting date', 'Ticket Posting Date', 'DOC', 'doc', 'Date of Complaint', 'Complaint Date', 'Posting Date']);
     const targetDocDateRaw = uploadType === 'PART_REPLACEMENT' ? (rawSpuCreatedDate || rawDoc) : (rawDoc || rawSpuCreatedDate);
 
+    const isPartUpload = uploadType === 'PART_REPLACEMENT';
     const zmacDate = parseFlexibleDate(rawZmacDate);
     const fdZbrnDate = parseFlexibleDate(rawFdZbrnDate);
-    const spuCreatedDate = parseFlexibleDate(rawSpuCreatedDate);
-    const docDate = parseFlexibleDate(targetDocDateRaw);
+    const spuCreatedDate = parseFlexibleDate(rawSpuCreatedDate, { preferYyyyDdMm: true });
+    const docDate = parseFlexibleDate(targetDocDateRaw, { preferYyyyDdMm: isPartUpload });
     const dopDate = parseFlexibleDate(rawDop);
     const doiDate = parseFlexibleDate(rawDoi);
     const outBoundDelDate = parseFlexibleDate(rawOutBoundDelDate);
 
     // Ageing Days = SPU Created Date (DOC) - DOI in days
-    const ageingDays = (doiDate && docDate) ? calculateAgeingDays(doiDate, docDate) : null;
+    const ageingDocDate = docDate || spuCreatedDate;
+    const ageingDays = (doiDate && ageingDocDate) ? calculateAgeingDays(doiDate, ageingDocDate) : null;
 
-    const spuStatusValue = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue']);
-    const rejQtyValue = getFieldValue(data, ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'RejQty']);
-    const approvedQtyValue = getFieldValue(data, ['Approved qty', 'Approved Qty', 'APPROVED QTY', 'App Qty', 'App_Qty', 'Approved_Qty', 'Approved Quantity']);
-    const franchiseValue = getFieldValue(data, ['Franchise', 'franchise', 'FRANCHISE', 'Franchisee Name', 'franchisee_name', 'Franchisee ID', 'franchisee_id']);
+    const spuStatusValue = getFieldValue(data, ['SPU Status', 'spu status', 'SPU_Status', 'spu_status', 'SPUStatus', 'SPU Statue', 'spu statue', 'Status', 'status']);
+    const rejQtyValue = getFieldValue(data, ['Rej Qty', 'rej qty', 'REJ QTY', 'Rej_Qty', 'rej_qty', 'RejQty']);
+    const approvedQtyValue = getFieldValue(data, ['Approved qty', 'Approved Qty', 'APPROVED QTY', 'App Qty', 'app qty', 'App_Qty', 'Approved_Qty', 'approved_qty', 'Approved Quantity']);
+    const franchiseValue = getFieldValue(data, ['Franchise', 'franchise', 'FRANCHISE', 'Franchisee Name', 'franchisee name', 'franchisee_name', 'Franchisee ID', 'franchisee id', 'franchisee_id']);
 
-    const itemCode = getFieldValue(data, ['ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code', 'spare', 'Spare', 'Spare Code', 'Part Code', 'part code']);
-    const description = getFieldValue(data, ['Description', 'description', 'DESCRIPTION', 'spare desc', 'Spare Desc', 'Part Description', 'part description']);
+    const itemCode = getFieldValue(data, ['ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code', 'item_code', 'spare', 'Spare', 'Spare Code', 'spare code', 'Part Code', 'part code', 'PartCode', 'part_code']);
+    const description = getFieldValue(data, ['Description', 'description', 'DESCRIPTION', 'spare desc', 'Spare Desc', 'Part Description', 'part description', 'PartDescription', 'Spare Description']);
+    const rawPartGrouping = getFieldValue(data, ['Part Grouping', 'part grouping', 'PART GROUPING', 'Part_Grouping', 'part_grouping', 'Part Group', 'part group', 'Grouping', 'grouping', 'Spare Group', 'spare group']);
     const problemDescription = getFieldValue(data, ['Problem Description', 'problem description', 'PROBLEM DESCRIPTION', 'Problem_Description', 'customer complaint', 'Customer Complaint', 'Complaint Description']);
 
     records.push({
-      complaint_number: complaintNumber || null,
+      complaint_number: complaintNumber || ticketNo || null,
       zmac_date: zmacDate ? toMySQLDate(zmacDate) : null,
       zmac_status: zmacStatus || null,
       spu_status: spuStatusValue || null,
-      spu_created_date: spuCreatedDate ? toMySQLDate(spuCreatedDate) : null,
+      spu_created_date: spuCreatedDate ? toMySQLDate(spuCreatedDate) : (docDate ? toMySQLDate(docDate) : null),
       fd_zbrn_id: fdZbrnId || null,
       fd_zbrn_status: fdZbrnStatus || null,
       fd_zbrn_date: fdZbrnDate ? toMySQLDate(fdZbrnDate) : null,
@@ -202,14 +233,14 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       franchisee_name: franchiseeName || franchiseValue || null,
       franchise: franchiseValue || franchiseeName || null,
       branch: branch || null,
-      doc: docDate ? toMySQLDate(docDate) : null,
-      ticket_no: ticketNo || null,
+      doc: docDate ? toMySQLDate(docDate) : (spuCreatedDate ? toMySQLDate(spuCreatedDate) : null),
+      ticket_no: ticketNo || complaintNumber || null,
       call_type: callType || null,
       machine_status: normalizedMachineStatus || null,
       product_category: normalizedMatCat || null,
       sub_category: subCategory || null,
-      approved_qty: approvedQtyValue !== null && approvedQtyValue !== undefined ? Number(approvedQtyValue) : 0,
-      rej_qty: rejQtyValue !== null && rejQtyValue !== undefined ? Number(rejQtyValue) : 0,
+      approved_qty: approvedQtyValue !== null && approvedQtyValue !== undefined && String(approvedQtyValue).trim() !== '' ? Number(approvedQtyValue) : 0,
+      rej_qty: rejQtyValue !== null && rejQtyValue !== undefined && String(rejQtyValue).trim() !== '' ? Number(rejQtyValue) : 0,
       dop: dopDate ? toMySQLDate(dopDate) : null,
       doi: doiDate ? toMySQLDate(doiDate) : null,
       technician_name: technicianName || null,
@@ -220,6 +251,8 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       serial_number: serialNumber || null,
       item_code: itemCode || partCode || partNumber || null,
       description: description || partDescription || partName || null,
+      part_grouping: rawPartGrouping || description || partDescription || null,
+      grouping: rawPartGrouping || description || partDescription || null,
       problem_description: problemDescription || customerComplaint || null,
       part_number: partNumber || null,
       part_name: partName || null,
@@ -239,7 +272,73 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
     });
   }
 
+
   return { records, skipped };
 }
 
-module.exports = { processRows };
+/**
+ * Processes raw rows from a Part Grouping Master/Lookup Excel or CSV file.
+ */
+function processGroupingRows(rawRows) {
+  const records = [];
+  const skipped = [];
+  const seenCodes = new Set();
+
+  for (let i = 0; i < rawRows.length; i++) {
+    const data = rawRows[i].data || rawRows[i];
+    const rowNumber = rawRows[i].rowNumber || (i + 2);
+
+    const itemCode = getFieldValue(data, [
+      'ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code',
+      'Part Code', 'part code', 'PartCode', 'part_code', 'PART CODE',
+      'Spare Code', 'spare code', 'SpareCode',
+    ]);
+    const partCode = getFieldValue(data, [
+      'Part Code', 'part code', 'PartCode', 'part_code', 'PART CODE',
+      'ItemCode', 'Item Code', 'item code', 'ITEM CODE',
+    ]);
+    const grouping = getFieldValue(data, [
+      'Part Grouping', 'part grouping', 'PART GROUPING', 'Part_Grouping', 'part_grouping',
+      'Part Group', 'part group', 'Grouping', 'grouping', 'Group', 'group',
+      'Group Name', 'group_name', 'Spare Group', 'spare group',
+    ]);
+    const description = getFieldValue(data, [
+      'Description', 'description', 'DESCRIPTION', 'Part Description', 'part description',
+      'Part Name', 'part name', 'Spare Desc', 'spare desc',
+    ]);
+    const category = getFieldValue(data, [
+      'Category', 'category', 'Product Category', 'Sub Category', 'mat cat',
+    ]);
+
+    const resolvedCode = itemCode || partCode;
+    if (!resolvedCode) {
+      skipped.push({ rowNumber, reason: 'Missing item_code or part_code' });
+      continue;
+    }
+    if (!grouping) {
+      skipped.push({ rowNumber, reason: 'Missing part_grouping name' });
+      continue;
+    }
+
+    const normKey = resolvedCode.trim().toUpperCase();
+    if (seenCodes.has(normKey)) {
+      skipped.push({ rowNumber, reason: `Duplicate code ${resolvedCode} in file` });
+      continue;
+    }
+    seenCodes.add(normKey);
+
+    records.push({
+      item_code: resolvedCode.trim(),
+      part_code: (partCode || resolvedCode).trim(),
+      part_name: description ? description.trim() : null,
+      part_description: description ? description.trim() : null,
+      part_grouping: grouping.trim(),
+      category: category ? category.trim() : null,
+    });
+  }
+
+  return { records, skipped };
+}
+
+module.exports = { processRows, processGroupingRows };
+

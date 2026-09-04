@@ -122,7 +122,7 @@ export default function PartReplacementDetails() {
   const date = searchParams.get('date') || '';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('doc');
+  const [sortBy, setSortBy] = useState('spu_created_date');
   const [sortDir, setSortDir] = useState('DESC');
   const [exporting, setExporting] = useState(false);
 
@@ -154,17 +154,17 @@ export default function PartReplacementDetails() {
     { key: 'branch', label: 'Branch', sortable: true },
     { key: 'franchise', label: 'Franchise', sortable: true, render: (row) => row.franchise || row.franchisee_name || '-' },
     { key: 'spu_status', label: 'SPU Status', sortable: true },
-    { key: 'doc', label: 'DOC (SPU Created Date)', sortable: true, render: (row) => formatDate(row.spu_created_date || row.doc) },
-    { key: 'doi', label: 'DOI', sortable: true, render: (row) => formatDate(row.doi) },
+    { key: 'spu_created_date', label: 'SPU Created Date', sortable: true, render: (row) => formatDate(row.spu_created_date || row.doc) },
     { key: 'ticket_no', label: 'Ticket', sortable: true },
     { key: 'machine_status', label: 'Machine Status', sortable: true },
+    { key: 'sub_category', label: 'Sub Category', sortable: true, render: (row) => row.sub_category || 'N/A' },
     { key: 'model', label: 'Model Name', sortable: true },
     { key: 'serial_number', label: 'Serial Number', sortable: true },
+    { key: 'doi', label: 'DOI', sortable: true, render: (row) => formatDate(row.doi) },
     { key: 'item_code', label: 'Item Code', sortable: true, render: (row) => row.item_code || row.part_code || '-' },
     { key: 'description', label: 'Description', sortable: true, render: (row) => row.description || row.part_description || '-' },
     { key: 'approved_qty', label: 'Approved Qty', sortable: true, render: (row) => row.approved_qty ?? 1 },
     { key: 'rej_qty', label: 'Rej Qty', sortable: true, render: (row) => row.rej_qty ?? 0 },
-    { key: 'sub_category', label: 'Sub Category', sortable: true, render: (row) => row.sub_category || 'N/A' },
     { key: 'ageing_days', label: 'Ageing Days', sortable: true },
     {
       key: 'ageing_category',
@@ -176,6 +176,16 @@ export default function PartReplacementDetails() {
         if (days !== null && days !== undefined && !isNaN(days) && Number(days) > 0 && Number(days) <= 90) return '0-3 Months';
         return row.ageing_category || '0-3 Months';
       }
+    },
+    {
+      key: 'part_grouping',
+      label: 'Part Grouping',
+      sortable: true,
+      render: (row) => (
+        <span className="font-semibold px-2 py-0.5 rounded text-[11px] bg-signal/10 dark:bg-signal/20 text-signal-dark dark:text-signal-light border border-signal/30 inline-block">
+          {row.part_grouping || row.grouping || 'Other'}
+        </span>
+      ),
     },
     { key: 'admin_comment', label: 'Remarks', sortable: false, render: (row) => <RemarksCell row={row} isAdmin={isAdmin} openAdminModal={openAdminModal} /> },
   ];
@@ -242,20 +252,22 @@ export default function PartReplacementDetails() {
         result.data.rows,
         [
           { key: 'branch', label: 'Branch' },
+          { key: 'franchise', label: 'Franchise' },
           { key: 'spu_status', label: 'SPU Status' },
-          { key: 'doc', label: 'SPU Created Date (doc)' },
-          { key: 'doi', label: 'doi' },
-          { key: 'dop', label: 'dop' },
+          { key: 'spu_created_date', label: 'SPU Created Date' },
           { key: 'ticket_no', label: 'Ticket' },
           { key: 'machine_status', label: 'Machine Status' },
+          { key: 'sub_category', label: 'Sub Category' },
           { key: 'model', label: 'Model Name' },
           { key: 'serial_number', label: 'Serial Number' },
+          { key: 'doi', label: 'DOI' },
           { key: 'item_code', label: 'Item Code' },
           { key: 'description', label: 'Description' },
-          { key: 'problem_description', label: 'Problem Description' },
-          { key: 'sub_category', label: 'Sub Category' },
+          { key: 'approved_qty', label: 'Approved Qty' },
+          { key: 'rej_qty', label: 'Rej Qty' },
           { key: 'ageing_days', label: 'Ageing Days' },
           { key: 'ageing_category', label: 'Ageing Category' },
+          { key: 'part_grouping', label: 'Part Grouping' },
           { key: 'admin_comment', label: 'Remarks' },
         ],
         `part-replacement-${subCategory || 'all'}-${ageingCategory || 'all'}-${Date.now()}.csv`

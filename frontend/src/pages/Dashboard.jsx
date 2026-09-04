@@ -187,21 +187,30 @@ export default function Dashboard() {
                   </Link>
 
                   <Link
-                    to={`/part-replacement?subCategory=FL${date ? `&date=${date}` : ''}`}
-                    className="p-3 rounded-lg bg-mist-100/60 dark:bg-ink-950/60 border border-mist-200 dark:border-ink-800 hover:bg-mist-200/60 dark:hover:bg-ink-800/60 transition-colors block"
+                    to={`/fl-analytics${date ? `?date=${date}` : ''}`}
+                    className="p-3 rounded-lg bg-mist-100/60 dark:bg-ink-950/60 border border-sky-300/60 dark:border-sky-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors block group"
                   >
-                    <p className="text-xs font-semibold text-ink-500 dark:text-mist-400">FL Models (FLU)</p>
+                    <p className="text-xs font-semibold text-sky-600 dark:text-sky-400 flex items-center justify-between">
+                      <span>FL Models (FLU)</span>
+                      <span className="text-[10px] group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                    </p>
                     <p className="text-2xl font-display font-bold text-ink-900 dark:text-mist-100 tabular-nums mt-0.5">
                       {(partData.data.flCount || 0).toLocaleString()}
                     </p>
-                    <p className="text-[11px] text-ink-400 dark:text-ink-500 mt-0.5">Front Load</p>
+                    <p className="text-[11px] text-ink-400 dark:text-ink-500 mt-0.5">Front Load (Analytics)</p>
                   </Link>
                 </div>
               </div>
-              <Link to={`/part-replacement${date ? `?date=${date}` : ''}`} className="btn-primary self-start">
-                View Part Replacement Details
-              </Link>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link to={`/part-replacement${date ? `?date=${date}` : ''}`} className="btn-primary self-start">
+                  View Part Replacement Details
+                </Link>
+                <Link to={`/part-replacement/showcase${date ? `?date=${date}` : ''}`} className="btn-secondary self-start">
+                  <span>📺</span> Part Showcase
+                </Link>
+              </div>
             </div>
+
 
             <div className="panel p-6">
               <p className="label-text mb-3">Part Ageing Distribution</p>

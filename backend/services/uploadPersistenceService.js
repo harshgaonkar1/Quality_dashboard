@@ -24,10 +24,18 @@ const TABLE_CONFIG = {
   PART_REPLACEMENT: {
     table: 'part_replacement',
     columns: [
-      'complaint_number', 'branch', 'franchise', 'spu_status', 'spu_created_date', 'doc', 'doi', 'dop', 'ticket_no',
-      'machine_status', 'model', 'serial_number', 'item_code', 'description', 'problem_description',
-      'product_category', 'sub_category', 'approved_qty', 'rej_qty', 'ageing_days', 'raw_payload',
+      'branch', 'franchise', 'spu_status', 'spu_created_date', 'doc', 'ticket_no',
+      'machine_status', 'sub_category', 'model', 'serial_number', 'doi', 'dop',
+      'item_code', 'description', 'approved_qty', 'rej_qty', 'ageing_days',
+      'part_grouping', 'grouping', 'complaint_number', 'problem_description',
+      'product_category', 'raw_payload',
     ],
+    conflictKey: 'serial_number',
+  },
+  PART_GROUPING: {
+    table: 'part_grouping',
+    columns: ['item_code', 'part_code', 'part_name', 'part_description', 'part_grouping', 'category'],
+    conflictKey: 'item_code',
   },
 };
 
@@ -37,7 +45,7 @@ const BATCH_SIZE = 500;
  * Batch-inserts records into the target table in chunks, guaranteeing
  * Complaint/Serial Number uniqueness via ON CONFLICT DO NOTHING.
  *
- * @param {'PRODUCT_REPLACEMENT'|'PART_REPLACEMENT'} uploadType
+ * @param {'PRODUCT_REPLACEMENT'|'PART_REPLACEMENT'|'PART_GROUPING'} uploadType
  * @param {object[]} records
  * @returns {Promise<{insertedRows:number, duplicateRows:number}>}
  */
@@ -45,6 +53,8 @@ async function batchInsert(uploadType, records) {
   const config = TABLE_CONFIG[uploadType];
   if (!config) throw new Error(`Unknown upload type: ${uploadType}`);
   if (records.length === 0) return { insertedRows: 0, duplicateRows: 0 };
+
+  const conflictKey = config.conflictKey || 'serial_number';
 
   if (supabase) {
     let insertedRows = 0;
@@ -58,10 +68,20 @@ async function batchInsert(uploadType, records) {
         return row;
       });
 
-      const { data, error } = await supabase
-        .from(config.table)
-        .upsert(cleanedChunk, { onConflict: 'serial_number', ignoreDuplicates: true })
-        .select('id');
+      let res;
+      if (uploadType === 'PART_REPLACEMENT') {
+        res = await supabase
+          .from(config.table)
+          .insert(cleanedChunk)
+          .select('id');
+      } else {
+        res = await supabase
+          .from(config.table)
+          .upsert(cleanedChunk, { onConflict: conflictKey, ignoreDuplicates: uploadType !== 'PART_GROUPING' })
+          .select('id');
+      }
+
+      const { data, error } = res;
 
       if (error) {
         if (error.message.includes('schema cache') || error.message.includes('does not exist')) {
@@ -74,10 +94,21 @@ async function batchInsert(uploadType, records) {
     }
 
     const duplicateRows = records.length - insertedRows;
+
+    // Automatically trigger QA lookup sync
+    if (uploadType === 'PART_REPLACEMENT' || uploadType === 'PART_GROUPING') {
+      try {
+        const partReplacementModel = require('../models/partReplacementModel');
+        partReplacementModel.syncPartGroupingLookup().catch(() => {});
+      } catch (e) {}
+    }
+
     return { insertedRows, duplicateRows };
   }
 
   // Fallback to PG Pool if Supabase client is not configured
+  if (!pool) return { insertedRows: 0, duplicateRows: 0 };
+
   const connection = await pool.getConnection();
   let insertedRows = 0;
   let duplicateRows = 0;
@@ -93,8 +124,9 @@ async function batchInsert(uploadType, records) {
       const valuesSql = chunk.map(() => placeholders).join(', ');
       const flatParams = chunk.flatMap((record) => config.columns.map((col) => record[col] ?? null));
 
+      const conflictClause = uploadType === 'PART_REPLACEMENT' ? '' : ` ON CONFLICT (${conflictKey}) DO NOTHING`;
       const [result] = await connection.query(
-        `INSERT INTO "${config.table}" (${columnList}) VALUES ${valuesSql} ON CONFLICT (serial_number) DO NOTHING`,
+        `INSERT INTO "${config.table}" (${columnList}) VALUES ${valuesSql}${conflictClause}`,
         flatParams
       );
 
@@ -104,6 +136,14 @@ async function batchInsert(uploadType, records) {
     }
 
     await connection.commit();
+
+    if (uploadType === 'PART_REPLACEMENT' || uploadType === 'PART_GROUPING') {
+      try {
+        const partReplacementModel = require('../models/partReplacementModel');
+        partReplacementModel.syncPartGroupingLookup().catch(() => {});
+      } catch (e) {}
+    }
+
     return { insertedRows, duplicateRows };
   } catch (err) {
     await connection.rollback();
@@ -112,6 +152,7 @@ async function batchInsert(uploadType, records) {
     connection.release();
   }
 }
+
 
 /**
  * Writes a row to upload_logs summarizing the outcome of an upload.

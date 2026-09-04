@@ -17,7 +17,14 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  * each with its label and count for Part Replacement.
  */
 async function getDashboardSummary({ productCategory = '', subCategory = '', date = '' } = {}) {
-  const counts = await partReplacementModel.getSummaryCounts({ productCategory, subCategory, date });
+  let activeDate = date;
+  let latestDate = await partReplacementModel.getLatestDate();
+
+  if (date === 'latest') {
+    activeDate = latestDate || '';
+  }
+
+  const counts = await partReplacementModel.getSummaryCounts({ productCategory, subCategory, date: activeDate });
 
   const cards = [
     {
@@ -75,7 +82,7 @@ async function getDashboardSummary({ productCategory = '', subCategory = '', dat
   const tlCount = Number(counts.tl_count) || 0;
   const flCount = Number(counts.fl_count) || 0;
 
-  return { total, tlCount, flCount, cards };
+  return { total, tlCount, flCount, cards, activeDate, latestDate };
 }
 
 /**
@@ -83,6 +90,11 @@ async function getDashboardSummary({ productCategory = '', subCategory = '', dat
  * enriching each row with its human-readable ageing category label.
  */
 async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, productCategory, subCategory, date }) {
+  let activeDate = date;
+  if (date === 'latest') {
+    activeDate = (await partReplacementModel.getLatestDate()) || '';
+  }
+
   let ageingMin = null;
   let ageingMax = null;
 
@@ -98,7 +110,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
   }
 
   const result = await partReplacementModel.getDetails({
-    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, productCategory, subCategory, date,
+    page, pageSize, search, sortBy, sortDir, ageingMin, ageingMax, productCategory, subCategory, date: activeDate,
   });
 
   const enrichedRows = result.rows.map((row) => ({
@@ -106,13 +118,18 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',
   }));
 
-  return { ...result, rows: enrichedRows };
+  return { ...result, rows: enrichedRows, activeDate };
 }
 
 /**
  * Fetches ALL matching rows (no pagination) for CSV export, with ageing labels attached.
  */
 async function getDetailsForExport({ ageingCategory, search, productCategory, subCategory, date }) {
+  let activeDate = date;
+  if (date === 'latest') {
+    activeDate = (await partReplacementModel.getLatestDate()) || '';
+  }
+
   let ageingMin = null;
   let ageingMax = null;
 
@@ -124,7 +141,7 @@ async function getDetailsForExport({ ageingCategory, search, productCategory, su
     }
   }
 
-  const rows = await partReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, productCategory, subCategory, date });
+  const rows = await partReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, productCategory, subCategory, date: activeDate });
   return rows.map((row) => ({
     ...row,
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',
@@ -136,4 +153,29 @@ async function updateComment(serialNumber, comment) {
   return partReplacementModel.updateComment(serialNumber, comment);
 }
 
-module.exports = { getDashboardSummary, getDashboardDetails, getDetailsForExport, updateComment, AGEING_CATEGORIES };
+/**
+ * Returns part grouping summary stats for FL and TL.
+ */
+async function getPartGroupingSummary({ date = '', productCategory = '', subCategory = '' } = {}) {
+  return partReplacementModel.getPartGroupingCounts({ date, productCategory, subCategory });
+}
+
+/**
+ * Triggers QA lookup sync from part_grouping table into part_replacement.
+ */
+async function syncPartGrouping() {
+  return partReplacementModel.syncPartGroupingLookup();
+}
+
+module.exports = {
+  getDashboardSummary,
+  getDashboardDetails,
+  getDetailsForExport,
+  updateComment,
+  getPartGroupingSummary,
+  syncPartGrouping,
+  AGEING_CATEGORIES,
+};
+
+
+

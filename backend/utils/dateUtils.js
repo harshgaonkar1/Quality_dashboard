@@ -23,7 +23,7 @@ function excelSerialToDate(serial) {
  * Attempts to parse a value (Date object, Excel serial number, or string)
  * into a valid JS Date. Returns null if parsing fails.
  */
-function parseFlexibleDate(value) {
+function parseFlexibleDate(value, options = {}) {
   if (value === null || value === undefined || value === '') return null;
 
   // Already a JS Date
@@ -41,7 +41,9 @@ function parseFlexibleDate(value) {
     const trimmed = value.trim();
     if (!trimmed) return null;
 
-    // DD/MM/YYYY or DD-MM-YYYY
+    const preferYyyyDdMm = Boolean(options && (options.preferYyyyDdMm || options.isYyyyDdMm));
+
+    // 1. DD/MM/YYYY or DD-MM-YYYY
     const ddMmYyyy = trimmed.match(
       /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/
     );
@@ -64,7 +66,7 @@ function parseFlexibleDate(value) {
       return null;
     }
 
-    // DD-MMM-YYYY
+    // 2. DD-MMM-YYYY (e.g. 03-Aug-2024)
     const monthNames = [
       'jan', 'feb', 'mar', 'apr', 'may', 'jun',
       'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
@@ -100,16 +102,34 @@ function parseFlexibleDate(value) {
       }
     }
 
-    // ISO YYYY-MM-DD
-    const iso = trimmed.match(
-      /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+    // 3. YYYY-DD-MM or YYYY-MM-DD
+    const ymdMatch = trimmed.match(
+      /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/
     );
 
-    if (iso) {
-      const year = parseInt(iso[1], 10);
-      const month = parseInt(iso[2], 10) - 1;
-      const day = parseInt(iso[3], 10);
+    if (ymdMatch) {
+      const year = parseInt(ymdMatch[1], 10);
+      const part2 = parseInt(ymdMatch[2], 10);
+      const part3 = parseInt(ymdMatch[3], 10);
 
+      // If preferYyyyDdMm is requested, or if part2 > 12 (must be day):
+      if (preferYyyyDdMm || (part2 > 12 && part3 <= 12)) {
+        const day = part2;
+        const month = part3 - 1;
+        const d = new Date(Date.UTC(year, month, day));
+
+        if (
+          d.getUTCFullYear() === year &&
+          d.getUTCMonth() === month &&
+          d.getUTCDate() === day
+        ) {
+          return d;
+        }
+      }
+
+      // Default YYYY-MM-DD
+      const month = part2 - 1;
+      const day = part3;
       const d = new Date(Date.UTC(year, month, day));
 
       if (
@@ -118,6 +138,21 @@ function parseFlexibleDate(value) {
         d.getUTCDate() === day
       ) {
         return d;
+      }
+
+      // Fallback: If default failed, try YYYY-DD-MM
+      if (!preferYyyyDdMm) {
+        const altDay = part2;
+        const altMonth = part3 - 1;
+        const altD = new Date(Date.UTC(year, altMonth, altDay));
+
+        if (
+          altD.getUTCFullYear() === year &&
+          altD.getUTCMonth() === altMonth &&
+          altD.getUTCDate() === altDay
+        ) {
+          return altD;
+        }
       }
     }
 

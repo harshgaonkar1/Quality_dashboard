@@ -154,6 +154,11 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
  * Fetches ALL matching rows (no pagination) for CSV export, with ageing labels attached.
  */
 async function getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory, date }) {
+  let activeDate = date;
+  if (date === 'latest') {
+    activeDate = (await productReplacementModel.getLatestDate()) || '';
+  }
+
   let ageingMin = null;
   let ageingMax = null;
 
@@ -165,12 +170,13 @@ async function getDetailsForExport({ ageingCategory, search, typeOfDamage, produ
     }
   }
 
-  const rows = await productReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, typeOfDamage, productCategory, date });
+  const rows = await productReplacementModel.getDetailsForExport({ search, ageingMin, ageingMax, typeOfDamage, productCategory, date: activeDate });
   return rows.map((row) => ({
     ...row,
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',
   }));
 }
+
 
 /** Updates comment for a record by serial_number. */
 async function updateComment(serialNumber, comment) {

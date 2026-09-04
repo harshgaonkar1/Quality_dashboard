@@ -10,20 +10,24 @@
 import { useState } from 'react';
 import FileUploader from '../components/FileUploader';
 import { uploadExcelFiles } from '../services/uploadService';
+import { syncPartGroupingLookup } from '../services/partReplacementService';
 
 export default function UploadPage() {
   const [productFile, setProductFile] = useState(null);
   const [partFile, setPartFile] = useState(null);
+  const [groupingFile, setGroupingFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
-  const canSubmit = (productFile || partFile) && !uploading;
+  const canSubmit = (productFile || partFile || groupingFile) && !uploading;
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!productFile && !partFile) return;
+    if (!productFile && !partFile && !groupingFile) return;
 
     setUploading(true);
     setError(null);
@@ -32,7 +36,11 @@ export default function UploadPage() {
 
     try {
       const response = await uploadExcelFiles(
-        { productReplacement: productFile || undefined, partReplacement: partFile || undefined },
+        {
+          productReplacement: productFile || undefined,
+          partReplacement: partFile || undefined,
+          partGrouping: groupingFile || undefined,
+        },
         setProgress
       );
       setResult(response.data);
@@ -43,20 +51,62 @@ export default function UploadPage() {
     }
   }
 
+  async function handleManualSync() {
+    setSyncing(true);
+    setSyncStatus(null);
+    try {
+      const res = await syncPartGroupingLookup();
+      setSyncStatus({
+        success: true,
+        message: `Sync complete! Updated ${res.data?.data?.updatedCount || 0} part replacement records based on ${res.data?.data?.mappingsCount || 0} part_grouping mappings.`,
+      });
+    } catch (err) {
+      setSyncStatus({
+        success: false,
+        message: `Sync failed: ${err.message}`,
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <h2 className="font-display text-xl font-bold text-ink-950 dark:text-mist-100">Upload Data</h2>
-        <p className="text-sm text-ink-500 dark:text-mist-400 mt-1">
-          Parses Excel files using <strong>Serial Number</strong>. Part Replacement filters for <strong>SPU Status</strong> (ClosedByStoreExecutive), <strong>Machine Status</strong> (Warranty), <strong>Product Category</strong> (WM), <strong>Sub Category</strong> (TLU &rarr; TL, FLU &rarr; FL), <strong>Ageing</strong> (SPU Created Date &minus; DOI), and <strong>Rej Qty</strong> (0).
-        </p>
+    <div className="max-w-4xl space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold text-ink-950 dark:text-mist-100">Upload Data</h2>
+          <p className="text-sm text-ink-500 dark:text-mist-400 mt-1">
+            Upload raw data files and Part Grouping lookup masters to populate and enrich the quality analytics dashboards.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleManualSync}
+          disabled={syncing}
+          className="btn-secondary self-start sm:self-auto text-xs py-2 px-3 flex items-center gap-1.5 shrink-0"
+          title="Re-run QA lookup mapping between part_replacement and part_grouping tables"
+        >
+          <span>🔄</span> {syncing ? 'Syncing Mappings…' : 'Sync Part Grouping Lookup'}
+        </button>
       </div>
 
+      {syncStatus && (
+        <div className={`panel p-3 text-xs font-semibold rounded-lg ${syncStatus.success ? 'bg-signal/15 text-signal-dark dark:text-signal-light border border-signal/30' : 'bg-danger/10 text-danger border border-danger/30'}`}>
+          {syncStatus.message}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="panel p-6 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <FileUploader label="Product Replacement File" file={productFile} onFileSelect={setProductFile} />
           <FileUploader label="Part Replacement File" file={partFile} onFileSelect={setPartFile} />
+          <FileUploader label="Part Grouping Lookup Master" file={groupingFile} onFileSelect={setGroupingFile} />
         </div>
+
+        <p className="text-xs text-ink-400 dark:text-mist-500 bg-mist-100 dark:bg-ink-900/60 p-3 rounded-lg border border-mist-200 dark:border-ink-800">
+          💡 <strong>QA Lookup Engine:</strong> Uploading the Part Grouping master maps <code>Item Code</code> / <code>Part Code</code> &rarr; <code>Part Grouping</code> name and automatically updates the <code>part_grouping</code> column in <code>part_replacement</code>.
+        </p>
+
 
         {uploading && (
           <div>

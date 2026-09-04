@@ -46,7 +46,19 @@ app.use(errorHandler);
   await testConnection();
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    // Non-blocking QA lookup initialization
+    try {
+      const { syncPartGroupingLookup } = require('./models/partReplacementModel');
+      syncPartGroupingLookup()
+        .then((res) => {
+          if (res && res.mappingsCount > 0) {
+            console.log(`🔄 Part Grouping QA lookup synced: ${res.updatedCount} records updated (${res.mappingsCount} mappings).`);
+          }
+        })
+        .catch(() => {});
+    } catch (e) {}
   });
 })();
+
 
 module.exports = app;

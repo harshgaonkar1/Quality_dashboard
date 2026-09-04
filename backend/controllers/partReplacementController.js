@@ -45,7 +45,7 @@ async function getDetails(req, res, next) {
       page = 1,
       pageSize = 25,
       search = '',
-      sortBy = 'doc',
+      sortBy = 'spu_created_date',
       sortDir = 'DESC',
       export: exportFlag,
     } = req.query;
@@ -91,4 +91,32 @@ async function saveComment(req, res, next) {
   }
 }
 
-module.exports = { getDashboard, getDetails, saveComment };
+/**
+ * GET /api/part/grouping
+ * Returns part replacement counts grouped by part name / part grouping for FL and TL.
+ */
+async function getGrouping(req, res, next) {
+  try {
+    const { productCategory = '', subCategory = '', date = '' } = req.query;
+    const result = await partReplacementService.getPartGroupingSummary({ productCategory, subCategory, date });
+    return success(res, result, 'Part grouping summary fetched successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+/**
+ * POST /api/part/sync-grouping
+ * Performs QA lookup update from part_grouping table into part_replacement table.
+ */
+async function syncGrouping(req, res, next) {
+  try {
+    const result = await partReplacementService.syncPartGrouping();
+    return success(res, result, 'Part grouping QA lookup sync completed successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getDashboard, getDetails, saveComment, getGrouping, syncGrouping };
+
+

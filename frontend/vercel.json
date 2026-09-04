@@ -31,6 +31,10 @@
     {
       "source": "/upload",
       "destination": "/index.html"
+    },
+    {
+      "source": "/part-replacement/showcase/:path*",
+      "destination": "/index.html"
     }
   ]
 }

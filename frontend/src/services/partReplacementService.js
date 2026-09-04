@@ -31,3 +31,15 @@ export function fetchDetailsForExport(params) {
 export function savePartComment(serialNumber, comment) {
   return api.post('/part/comment', { serialNumber, comment });
 }
+
+/** Fetches part grouping summary (X-axis parts breakdown for FL & TL). */
+export function fetchPartGroupingSummary(params = {}) {
+  return api.get('/part/grouping', { params });
+}
+
+/** Triggers QA lookup sync between part_grouping table and part_replacement table. */
+export function syncPartGroupingLookup() {
+  return api.post('/part/sync-grouping');
+}
+
+

@@ -37,7 +37,7 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
     }
   }
 
-  if (date) {
+  if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     whereClause += ' AND (DATE(zmac_date) = ? OR (zmac_date IS NULL AND DATE(doc) = ?))';
     params.push(date, date);
   }
@@ -81,9 +81,10 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
     }
   }
 
-  if (date) {
+  if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     q = q.or(`zmac_date.eq.${date},and(zmac_date.is.null,doc.eq.${date})`);
   }
+
 
   if (ageingMin !== null && ageingMax !== null) {
     if (ageingMin === 0 && ageingMax === 0) {
@@ -510,28 +511,31 @@ async function getLatestDate() {
     }
   }
 
-  try {
-    const [rows] = await pool.query(
-      `SELECT DATE(COALESCE(zmac_date, doc)) AS latest_date
-       FROM product_replacement
-       WHERE fd_zbrn_status IN (?, ?)
-         AND mat_cat IN (?, ?)
-         AND machine_status IN (?)
-         AND (zmac_date IS NOT NULL OR doc IS NOT NULL)
-       ORDER BY COALESCE(zmac_date, doc) DESC
-       LIMIT 1`,
-      BASE_PARAMS
-    );
-    if (rows && rows[0] && rows[0].latest_date) {
-      const d = new Date(rows[0].latest_date);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
+  if (pool) {
+    try {
+      const [rows] = await pool.query(
+        `SELECT DATE(COALESCE(zmac_date, doc)) AS latest_date
+         FROM product_replacement
+         WHERE fd_zbrn_status IN (?, ?)
+           AND mat_cat IN (?, ?)
+           AND machine_status IN (?)
+           AND (zmac_date IS NOT NULL OR doc IS NOT NULL)
+         ORDER BY COALESCE(zmac_date, doc) DESC
+         LIMIT 1`,
+        BASE_PARAMS
+      );
+      if (rows && rows[0] && rows[0].latest_date) {
+        const d = new Date(rows[0].latest_date);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    } catch (e) {
+      console.warn('⚠️ SQL getLatestDate notice:', e.message);
     }
-  } catch (e) {
-    console.warn('⚠️ SQL getLatestDate notice:', e.message);
   }
+
   return null;
 }
 
