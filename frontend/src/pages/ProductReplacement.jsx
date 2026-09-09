@@ -45,7 +45,7 @@ export default function ProductReplacement() {
         <div>
           <h2 className="font-display text-xl font-bold text-ink-950">Product Replacement</h2>
           <p className="text-sm text-ink-500 mt-1">
-            FD ZBRN Status: Approved / Approved for Upgrade · Machine Status: SW · Mat Cat: WM / WD
+            FD ZBRN Status: Approved / Approved for Upgrade · Machine Status: SW · Mat Cat: WM / WD / MW
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -78,6 +78,7 @@ export default function ProductReplacement() {
               <option value="">All Models</option>
               <option value="TL">TL Models</option>
               <option value="FL">FL Models</option>
+              <option value="MW">MW Models</option>
             </select>
           </div>
 

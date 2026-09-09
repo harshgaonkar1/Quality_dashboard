@@ -108,6 +108,7 @@ export default function FilterBar({
               <option value="" className="dark:bg-ink-900 dark:text-mist-100">All Models</option>
               <option value="TL" className="dark:bg-ink-900 dark:text-mist-100">TL Models</option>
               <option value="FL" className="dark:bg-ink-900 dark:text-mist-100">FL Models</option>
+              <option value="MW" className="dark:bg-ink-900 dark:text-mist-100">MW Models</option>
             </select>
           </div>
         )}

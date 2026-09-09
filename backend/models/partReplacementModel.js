@@ -17,9 +17,11 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, pro
   if (subCatFilter && subCatFilter.trim() !== '' && subCatFilter.toUpperCase() !== 'ALL') {
     const cat = subCatFilter.trim().toUpperCase();
     if (cat === 'TL') {
-      whereClause += " AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%')";
+      whereClause += " AND (UPPER(COALESCE(sub_category, '')) IN ('TL', 'TLU', 'TLM') OR UPPER(COALESCE(model, '')) LIKE 'TL%')";
+    } else if (cat === 'MW') {
+      whereClause += " AND (UPPER(COALESCE(sub_category, '')) IN ('MW', 'MWO', 'MICROWAVE', 'MWU') OR UPPER(COALESCE(model, '')) LIKE 'MW%')";
     } else if (cat === 'FL') {
-      whereClause += " AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL')))";
+      whereClause += " AND (UPPER(COALESCE(sub_category, '')) IN ('FL', 'FLU') OR UPPER(COALESCE(model, '')) LIKE 'FL%' OR (UPPER(COALESCE(model, '')) NOT LIKE 'TL%' AND UPPER(COALESCE(model, '')) NOT LIKE 'MW%' AND UPPER(COALESCE(sub_category, '')) NOT IN ('TL', 'TLU', 'TLM', 'MW', 'MWO', 'MICROWAVE', 'MWU')))";
     }
   }
 
@@ -57,9 +59,14 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
   if (subCatFilter && subCatFilter.trim() !== '' && subCatFilter.toUpperCase() !== 'ALL') {
     const cat = subCatFilter.trim().toUpperCase();
     if (cat === 'TL') {
-      q = q.or('sub_category.eq.TL,model.ilike.TL%');
+      q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%');
+    } else if (cat === 'MW') {
+      q = q.or('sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
     } else if (cat === 'FL') {
-      q = q.or('sub_category.eq.FL,and(model.not.ilike.TL%,or(sub_category.is.null,sub_category.neq.TL))');
+      q = q.or('sub_category.eq.FL,sub_category.eq.FLU,sub_category.eq.Flu,model.ilike.FL%')
+           .not('sub_category', 'in', '("MW","MWO","MICROWAVE","MWU","TL","TLU","TLM")')
+           .not('model', 'ilike', 'TL%')
+           .not('model', 'ilike', 'MW%');
     }
   }
 
@@ -119,11 +126,13 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', subCa
         const days = row.ageing_days;
         const subCat = (row.sub_category || '').toUpperCase();
         const model = (row.model || '').toUpperCase();
-        const isTl = subCat === 'TL' || model.startsWith('TL');
+        const isTl = subCat === 'TL' || subCat === 'TLU' || subCat === 'TLM' || model.startsWith('TL');
+        const isMw = subCat === 'MW' || subCat === 'MWO' || subCat === 'MICROWAVE' || subCat === 'MWU' || model.startsWith('MW');
+        const isFl = subCat === 'FL' || subCat === 'FLU' || model.startsWith('FL') || (!isTl && !isMw);
 
         counts.total += 1;
         if (isTl) counts.tl_count += 1;
-        else counts.fl_count += 1;
+        else if (isFl && !isMw) counts.fl_count += 1;
 
         if (days === 0 || days === '0') {
           counts.bucket_installation_failure += 1;
@@ -162,34 +171,34 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', subCa
       `SELECT
           SUM(CASE WHEN ageing_days = 0 THEN 1 ELSE 0 END) AS bucket_installation_failure,
           SUM(CASE WHEN ageing_days = 0 AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_installation_failure_tl,
-          SUM(CASE WHEN ageing_days = 0 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_installation_failure_fl,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_installation_failure_fl,
 
           SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) THEN 1 ELSE 0 END) AS bucket_0_3_months,
           SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
 
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 THEN 1 ELSE 0 END)   AS bucket_1_year,
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_1_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_1_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_1_year_fl,
 
           SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 THEN 1 ELSE 0 END)  AS bucket_2_year,
           SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_2_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_2_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_2_year_fl,
 
           SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 THEN 1 ELSE 0 END) AS bucket_3_year,
           SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_3_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_3_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_3_year_fl,
 
           SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 THEN 1 ELSE 0 END) AS bucket_4_year,
           SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_4_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_4_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_4_year_fl,
 
           SUM(CASE WHEN ageing_days > 1460 THEN 1 ELSE 0 END)               AS bucket_more_than_4_years,
           SUM(CASE WHEN ageing_days > 1460 AND (UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%') THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl,
-          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL'))) THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO')))) THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl,
 
           SUM(CASE WHEN UPPER(sub_category) = 'TL' OR UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS tl_count,
-          SUM(CASE WHEN UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND (sub_category IS NULL OR UPPER(sub_category) != 'TL')) THEN 1 ELSE 0 END) AS fl_count,
+          SUM(CASE WHEN UPPER(sub_category) = 'FL' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND (sub_category IS NULL OR (UPPER(sub_category) != 'TL' AND UPPER(sub_category) != 'MW' AND UPPER(sub_category) != 'MWO'))) THEN 1 ELSE 0 END) AS fl_count,
           COUNT(*) AS total
        FROM part_replacement
        WHERE ${whereClause}`,

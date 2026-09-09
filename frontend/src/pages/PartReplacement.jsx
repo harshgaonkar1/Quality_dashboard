@@ -42,7 +42,7 @@ export default function PartReplacement() {
         <div>
           <h2 className="font-display text-xl font-bold text-ink-950">Part Replacement</h2>
           <p className="text-sm text-ink-500 mt-1">
-            SPU Status: ClosedByStoreExecutive · Machine Status: Warranty · Sub Category: FLu / TL / TLU · Approved Qty: ≥ 1 · Rej Qty: 0
+            SPU Status: ClosedByStoreExecutive · Machine Status: Warranty · Sub Category: FLu / TL / TLU / MW · Approved Qty: ≥ 1 · Rej Qty: 0
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -59,6 +59,7 @@ export default function PartReplacement() {
               <option value="">All Models</option>
               <option value="TL">TL Models</option>
               <option value="FL">FL Models</option>
+              <option value="MW">MW Models</option>
             </select>
           </div>
 

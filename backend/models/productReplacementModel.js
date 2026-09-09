@@ -9,13 +9,13 @@ const { supabase } = require('../database/supabaseClient');
 const { pool } = require('../database/connection');
 
 const ALLOWED_STATUS = ['Approved', 'Approved for Upgrade'];
-const ALLOWED_MAT_CAT = ['WM', 'WD'];
+const ALLOWED_MAT_CAT = ['WM', 'WD', 'MW', 'MWO'];
 const ALLOWED_MACHINE_STATUS = ['SW'];
 
 const BASE_WHERE = `
-  fd_zbrn_status IN (?, ?)
-  AND mat_cat IN (?, ?)
-  AND machine_status IN (?)
+  fd_zbrn_status IN (${ALLOWED_STATUS.map(() => '?').join(', ')})
+  AND mat_cat IN (${ALLOWED_MAT_CAT.map(() => '?').join(', ')})
+  AND machine_status IN (${ALLOWED_MACHINE_STATUS.map(() => '?').join(', ')})
 `;
 const BASE_PARAMS = [...ALLOWED_STATUS, ...ALLOWED_MAT_CAT, ...ALLOWED_MACHINE_STATUS];
 
@@ -31,9 +31,11 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
   if (productCategory && productCategory.trim() !== '' && productCategory.toUpperCase() !== 'ALL') {
     const cat = productCategory.trim().toUpperCase();
     if (cat === 'TL') {
-      whereClause += " AND (UPPER(model) LIKE 'TL%')";
+      whereClause += " AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL')";
+    } else if (cat === 'MW') {
+      whereClause += " AND (UPPER(model) LIKE 'MW%' OR UPPER(mat_cat) IN ('MW', 'MWO', 'MICROWAVE'))";
     } else if (cat === 'FL') {
-      whereClause += " AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL)";
+      whereClause += " AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL')))";
     }
   }
 
@@ -65,7 +67,6 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
 function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '', date = '' }) {
   let q = query
     .in('fd_zbrn_status', ALLOWED_STATUS)
-    .in('mat_cat', ALLOWED_MAT_CAT)
     .in('machine_status', ALLOWED_MACHINE_STATUS);
 
   if (typeOfDamage && typeOfDamage.trim() !== '' && typeOfDamage.toUpperCase() !== 'ALL') {
@@ -75,10 +76,14 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
   if (productCategory && productCategory.trim() !== '' && productCategory.toUpperCase() !== 'ALL') {
     const cat = productCategory.trim().toUpperCase();
     if (cat === 'TL') {
-      q = q.ilike('model', 'TL%');
+      q = q.in('mat_cat', ALLOWED_MAT_CAT).or('model.ilike.TL%,mat_cat.eq.TL');
+    } else if (cat === 'MW') {
+      q = q.in('mat_cat', ['MW', 'MWO', 'MICROWAVE']).or('mat_cat.eq.MW,mat_cat.eq.MWO,mat_cat.eq.MICROWAVE,model.ilike.MW%');
     } else if (cat === 'FL') {
-      q = q.or('model.is.null,model.not.ilike.TL%');
+      q = q.in('mat_cat', ['WM', 'WD']).not('model', 'ilike', 'TL%').not('model', 'ilike', 'MW%');
     }
+  } else {
+    q = q.in('mat_cat', ALLOWED_MAT_CAT);
   }
 
   if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -142,7 +147,7 @@ const EMPTY_COUNTS = {
 async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date = '' } = {}) {
   if (supabase) {
     try {
-      let q = supabase.from('product_replacement').select('ageing_days, model, type_of_damage');
+      let q = supabase.from('product_replacement').select('ageing_days, model, type_of_damage, mat_cat');
       q = applySupabaseFilters(q, { typeOfDamage, productCategory, date });
 
       const { data: rows, error } = await q;
@@ -155,13 +160,17 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
 
       (rows || []).forEach((row) => {
         const days = row.ageing_days;
-        const isTl = row.model && row.model.toUpperCase().startsWith('TL');
+        const model = (row.model || '').toUpperCase();
+        const matCat = (row.mat_cat || '').toUpperCase();
+        const isTl = model.startsWith('TL') || matCat === 'TL';
+        const isMw = model.startsWith('MW') || matCat === 'MW' || matCat === 'MWO' || matCat === 'MICROWAVE';
+        const isFl = !isTl && !isMw;
         const damage = (row.type_of_damage || '').toLowerCase();
         const isFunc = damage.includes('func');
         const isTrans = damage.includes('trans');
 
         if (isTl) counts.tl_count++;
-        else counts.fl_count++;
+        else if (isFl) counts.fl_count++;
 
         let bKey = '';
         if (days === 0 || days === '0') bKey = 'bucket_installation_failure';
@@ -198,63 +207,63 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
     const [rows] = await pool.query(
       `SELECT
           SUM(CASE WHEN ageing_days = 0 THEN 1 ELSE 0 END) AS bucket_installation_failure,
-          SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl,
-          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_installation_failure_fl,
-          SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl_func,
-          SUM(CASE WHEN ageing_days = 0 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl_trans,
-          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_installation_failure_fl_func,
-          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_installation_failure_fl_trans,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_installation_failure_tl,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_installation_failure_fl,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl_func,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_installation_failure_tl_trans,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_installation_failure_fl_func,
+          SUM(CASE WHEN ageing_days = 0 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_installation_failure_fl_trans,
 
           SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) THEN 1 ELSE 0 END) AS bucket_0_3_months,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl_func,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl_trans,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_0_3_months_fl_func,
-          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_0_3_months_fl_trans,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_0_3_months_tl,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_0_3_months_fl,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl_func,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_0_3_months_tl_trans,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_0_3_months_fl_func,
+          SUM(CASE WHEN (ageing_days IS NULL OR (ageing_days BETWEEN 1 AND 90)) AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_0_3_months_fl_trans,
 
           SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 THEN 1 ELSE 0 END) AS bucket_1_year,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_1_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_1_year_fl,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_1_year_tl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_1_year_tl_trans,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_1_year_fl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_1_year_fl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_1_year_tl,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_1_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_1_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_1_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_1_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 91 AND 365 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_1_year_fl_trans,
 
           SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 THEN 1 ELSE 0 END) AS bucket_2_year,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_2_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_2_year_fl,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_2_year_tl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_2_year_tl_trans,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_2_year_fl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_2_year_fl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_2_year_tl,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_2_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_2_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_2_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_2_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 366 AND 730 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_2_year_fl_trans,
 
           SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 THEN 1 ELSE 0 END) AS bucket_3_year,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_3_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_3_year_fl,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_3_year_tl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_3_year_tl_trans,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_3_year_fl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_3_year_fl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_3_year_tl,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_3_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_3_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_3_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_3_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 731 AND 1095 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_3_year_fl_trans,
 
           SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 THEN 1 ELSE 0 END) AS bucket_4_year,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_4_year_tl,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_4_year_fl,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_4_year_tl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_4_year_tl_trans,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_4_year_fl_func,
-          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_4_year_fl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_4_year_tl,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_4_year_fl,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_4_year_tl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_4_year_tl_trans,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_4_year_fl_func,
+          SUM(CASE WHEN ageing_days BETWEEN 1096 AND 1460 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_4_year_fl_trans,
 
           SUM(CASE WHEN ageing_days > 1460 THEN 1 ELSE 0 END) AS bucket_more_than_4_years,
-          SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl,
-          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl,
-          SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl_func,
-          SUM(CASE WHEN ageing_days > 1460 AND UPPER(model) LIKE 'TL%' AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl_trans,
-          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl_func,
-          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) NOT LIKE 'TL%' OR model IS NULL) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl_trans,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl_func,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_tl_trans,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%func%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl_func,
+          SUM(CASE WHEN ageing_days > 1460 AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) AND LOWER(type_of_damage) LIKE '%trans%' THEN 1 ELSE 0 END) AS bucket_more_than_4_years_fl_trans,
 
-          SUM(CASE WHEN UPPER(model) LIKE 'TL%' THEN 1 ELSE 0 END) AS tl_count,
-          SUM(CASE WHEN UPPER(model) NOT LIKE 'TL%' OR model IS NULL THEN 1 ELSE 0 END) AS fl_count,
+          SUM(CASE WHEN (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL') THEN 1 ELSE 0 END) AS tl_count,
+          SUM(CASE WHEN (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL'))) THEN 1 ELSE 0 END) AS fl_count,
           COUNT(*) AS total
        FROM product_replacement
        WHERE ${whereClause}`,
@@ -516,9 +525,7 @@ async function getLatestDate() {
       const [rows] = await pool.query(
         `SELECT DATE(COALESCE(zmac_date, doc)) AS latest_date
          FROM product_replacement
-         WHERE fd_zbrn_status IN (?, ?)
-           AND mat_cat IN (?, ?)
-           AND machine_status IN (?)
+         WHERE ${BASE_WHERE}
            AND (zmac_date IS NOT NULL OR doc IS NOT NULL)
          ORDER BY COALESCE(zmac_date, doc) DESC
          LIMIT 1`,

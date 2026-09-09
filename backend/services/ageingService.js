@@ -109,8 +109,8 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
         continue;
       }
 
-      if (!normalizedMatCat || (normalizedMatCat !== 'WM' && normalizedMatCat !== 'WD')) {
-        skipped.push({ rowNumber, reason: `Material Category '${productCat || matCat || 'N/A'}' is not WM or WD`, complaintNumber: complaintNumber || null, serialNumber });
+      if (!normalizedMatCat || (normalizedMatCat !== 'WM' && normalizedMatCat !== 'WD' && normalizedMatCat !== 'MW' && normalizedMatCat !== 'MWO')) {
+        skipped.push({ rowNumber, reason: `Material Category '${productCat || matCat || 'N/A'}' is not WM, WD, or MW`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
     }
@@ -131,7 +131,7 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
         continue;
       }
 
-      // 3. Sub Category: from this take FLu, TL, TLU for FL and TL mapping
+      // 3. Sub Category: from this take FLu, TL, TLU for FL and TL mapping, and MW / MWO for MW mapping
       const rawSubCat = getFieldValue(data, ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat', 'Sub_Cat']);
       let mappedSubCategory = null;
       if (rawSubCat) {
@@ -140,16 +140,19 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
           mappedSubCategory = 'FL';
         } else if (upperSub === 'TL' || upperSub === 'TLU' || upperSub === 'TLM') {
           mappedSubCategory = 'TL';
+        } else if (upperSub === 'MW' || upperSub === 'MWO' || upperSub === 'MICROWAVE' || upperSub === 'MWU') {
+          mappedSubCategory = 'MW';
         }
       }
       if (!mappedSubCategory && rawModel) {
         const upperModel = rawModel.trim().toUpperCase();
         if (upperModel.startsWith('TL')) mappedSubCategory = 'TL';
         else if (upperModel.startsWith('FL')) mappedSubCategory = 'FL';
+        else if (upperModel.startsWith('MW')) mappedSubCategory = 'MW';
       }
 
-      if (!mappedSubCategory || (mappedSubCategory !== 'FL' && mappedSubCategory !== 'TL')) {
-        skipped.push({ rowNumber, reason: `Sub Category '${rawSubCat || 'N/A'}' is not FLu, TL, or TLU`, complaintNumber: complaintNumber || null, serialNumber });
+      if (!mappedSubCategory || (mappedSubCategory !== 'FL' && mappedSubCategory !== 'TL' && mappedSubCategory !== 'MW')) {
+        skipped.push({ rowNumber, reason: `Sub Category '${rawSubCat || 'N/A'}' is not FLu, TL, TLU, or MW`, complaintNumber: complaintNumber || null, serialNumber });
         continue;
       }
 
@@ -172,7 +175,7 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
 
     seenSerialNumbers.add(serialNumber);
 
-    // Sub Category handling (FLU -> FL, TL/TLU/TLM -> TL)
+    // Sub Category handling (FLU -> FL, TL/TLU/TLM -> TL, MW/MWO -> MW)
     const rawSubCat = getFieldValue(data, ['Sub Category', 'sub category', 'SUB CATEGORY', 'sub_category', 'SubCat', 'Sub_Cat']);
     let subCategory = null;
     if (rawSubCat) {
@@ -181,6 +184,8 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
         subCategory = 'FL';
       } else if (upperSub === 'TL' || upperSub === 'TLU' || upperSub === 'TLM') {
         subCategory = 'TL';
+      } else if (upperSub === 'MW' || upperSub === 'MWO' || upperSub === 'MICROWAVE' || upperSub === 'MWU') {
+        subCategory = 'MW';
       } else {
         subCategory = upperSub;
       }
@@ -188,6 +193,7 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       const upperModel = rawModel.trim().toUpperCase();
       if (upperModel.startsWith('TL')) subCategory = 'TL';
       else if (upperModel.startsWith('FL')) subCategory = 'FL';
+      else if (upperModel.startsWith('MW')) subCategory = 'MW';
     }
 
     // DOC handling: for Part Replacement, take SPU Created Date as DOC to calculate ageing
