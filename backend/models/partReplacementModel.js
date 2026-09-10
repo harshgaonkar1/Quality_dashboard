@@ -517,28 +517,70 @@ async function getLatestDate() {
 }
 
 /**
+ * Normalizes any code string by trimming and converting to uppercase.
+ * Also returns clean variants without trailing .0 or spaces.
+ */
+function getNormalizedCodeVariants(rawCode) {
+  if (rawCode === undefined || rawCode === null) return [];
+  const str = String(rawCode).trim().toUpperCase();
+  if (!str) return [];
+
+  const variants = new Set();
+  variants.add(str);
+
+  // If numeric like "400123.0" -> add "400123"
+  if (str.endsWith('.0') && !isNaN(Number(str))) {
+    variants.add(str.slice(0, -2));
+  } else if (!isNaN(Number(str)) && !str.includes('.')) {
+    variants.add(str);
+  }
+
+  // Cleaned alphanumeric (removes hyphens, slashes, spaces)
+  const alphaNum = str.replace(/[^A-Z0-9]/g, '');
+  if (alphaNum && alphaNum !== str) {
+    variants.add(alphaNum);
+  }
+
+  return Array.from(variants);
+}
+
+/**
+ * Extracts all candidate codes from any row object (item_code, part_code, spare, etc.)
+ */
+function getAllPartCodesFromRow(row) {
+  if (!row || typeof row !== 'object') return [];
+  const candidateCodes = new Set();
+
+  const exactKeys = [
+    'item_code', 'itemcode', 'Item_Code', 'ItemCode', 'ITEM_CODE', 'ITEMCODE', 'item code', 'Item Code',
+    'partcode', 'part_code', 'PartCode', 'Part_Code', 'PARTCODE', 'PART_CODE', 'part code', 'Part Code',
+    'code', 'Code', 'CODE', 'part_no', 'partno', 'Part_No', 'PartNo', 'Part Number', 'part number',
+    'spare', 'Spare', 'SPARE', 'spare_code', 'spare code', 'Spare Code', 'SpareCode', 'SPARE CODE',
+    'material', 'Material', 'material_code', 'material code', 'Material Code', 'Mat Code', 'mat code'
+  ];
+
+  for (const k of exactKeys) {
+    if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+      getNormalizedCodeVariants(row[k]).forEach((v) => candidateCodes.add(v));
+    }
+  }
+
+  for (const [k, v] of Object.entries(row)) {
+    const key = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if ((key === 'itemcode' || key === 'partcode' || key === 'partno' || key === 'code' || key === 'sparecode' || key === 'materialcode') && v) {
+      getNormalizedCodeVariants(v).forEach((codeVar) => candidateCodes.add(codeVar));
+    }
+  }
+
+  return Array.from(candidateCodes);
+}
+
+/**
  * Extracts part code from any row object (handling 'partcode', 'part_code', 'item_code', etc.)
  */
 function getPartCodeFromRow(row) {
-  if (!row || typeof row !== 'object') return '';
-  const exactKeys = [
-    'partcode', 'part_code', 'PartCode', 'Part_Code', 'PARTCODE', 'PART_CODE',
-    'part code', 'Part Code', 'item_code', 'itemcode', 'Item_Code', 'ItemCode',
-    'ITEM_CODE', 'ITEMCODE', 'item code', 'Item Code', 'code', 'Code', 'CODE',
-    'part_no', 'partno', 'Part_No', 'PartNo'
-  ];
-  for (const k of exactKeys) {
-    if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
-      return String(row[k]).trim();
-    }
-  }
-  for (const [k, v] of Object.entries(row)) {
-    const key = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if ((key === 'partcode' || key === 'part_code' || key === 'itemcode' || key === 'item_code' || key === 'code' || key === 'partno') && v) {
-      return String(v).trim();
-    }
-  }
-  return '';
+  const codes = getAllPartCodesFromRow(row);
+  return codes.length > 0 ? codes[0] : '';
 }
 
 /**
@@ -548,8 +590,9 @@ function getPartNameFromRow(row) {
   if (!row || typeof row !== 'object') return '';
   const exactKeys = [
     'partname', 'part_name', 'PartName', 'Part_Name', 'PARTNAME', 'PART_NAME',
-    'part name', 'Part Name', 'description', 'Description', 'part_description', 'part description',
-    'name', 'Name'
+    'part name', 'Part Name', 'description', 'Description', 'DESCRIPTION',
+    'part_description', 'part description', 'Part Description', 'Spare Desc', 'spare desc',
+    'name', 'Name', 'material description', 'Material Description'
   ];
   for (const k of exactKeys) {
     if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
@@ -558,7 +601,7 @@ function getPartNameFromRow(row) {
   }
   for (const [k, v] of Object.entries(row)) {
     const key = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if ((key === 'partname' || key === 'description' || key === 'partdescription' || key === 'name') && v) {
+    if ((key === 'partname' || key === 'description' || key === 'partdescription' || key === 'name' || key === 'sparedesc') && v) {
       return String(v).trim();
     }
   }
@@ -571,12 +614,12 @@ function getPartNameFromRow(row) {
 function getGroupingNameFromRow(row) {
   if (!row || typeof row !== 'object') return '';
   const exactKeys = [
+    'part_grouping', 'Part_Grouping', 'PART_GROUPING', 'Part Grouping', 'part grouping', 'PART GROUPING',
     'grouping name', 'Grouping Name', 'Grouping name', 'grouping Name', 'GROUPING NAME',
     'groupingname', 'GroupingName', 'GROUPINGNAME', 'grouping_name', 'Grouping_Name', 'GROUPING_NAME',
-    'part_grouping', 'Part_Grouping', 'PART_GROUPING', 'Part Grouping', 'part grouping', 'PART GROUPING',
     'part_group', 'Part_Group', 'PART_GROUP', 'Part Group', 'part group',
     'grouping', 'Grouping', 'GROUPING', 'group_name', 'Group_Name', 'GROUP_NAME', 'Group Name', 'group name',
-    'group', 'Group', 'GROUP'
+    'group', 'Group', 'GROUP', 'spare group', 'Spare Group', 'qa grouping', 'QA Grouping'
   ];
   for (const k of exactKeys) {
     if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
@@ -595,7 +638,8 @@ function getGroupingNameFromRow(row) {
 }
 
 /**
- * Helper to enrich a single part replacement row with the QA lookup from part_grouping table.
+ * Helper to enrich a single part replacement row with the QA VLOOKUP from part_grouping table.
+ * Prioritizes matching against part_grouping table (by item_code, part_code, payload codes, description).
  */
 function enrichRowWithLookup(row, lookupMap) {
   if (!row) return row;
@@ -604,30 +648,53 @@ function enrichRowWithLookup(row, lookupMap) {
     try { rawPayloadObj = JSON.parse(rawPayloadObj); } catch (e) { rawPayloadObj = null; }
   }
 
-  const itemCode = (row.item_code && String(row.item_code).trim()) || '';
-  const partCode = (row.part_code && String(row.part_code).trim()) || '';
-  const payloadPartCode = (rawPayloadObj && (rawPayloadObj['Part Code'] || rawPayloadObj['part_code'] || rawPayloadObj['PartCode'] || rawPayloadObj['ItemCode'] || rawPayloadObj['item_code'] || rawPayloadObj['partcode']))
-    ? String(rawPayloadObj['Part Code'] || rawPayloadObj['part_code'] || rawPayloadObj['PartCode'] || rawPayloadObj['ItemCode'] || rawPayloadObj['item_code'] || rawPayloadObj['partcode']).trim()
-    : '';
+  // 1. Gather all candidate codes from the row and raw payload
+  const rowCodes = getAllPartCodesFromRow(row);
+  let payloadCodes = [];
+  if (rawPayloadObj && typeof rawPayloadObj === 'object') {
+    payloadCodes = getAllPartCodesFromRow(rawPayloadObj);
+  }
+  const allCodes = Array.from(new Set([...rowCodes, ...payloadCodes]));
 
-  const normItemCode = itemCode.toUpperCase();
-  const normPartCode = partCode.toUpperCase();
-  const normPayloadCode = payloadPartCode.toUpperCase();
+  // 2. VLOOKUP in part_grouping table (codeMap) - Priority #1
+  let matchedGroup = '';
+  if (lookupMap && lookupMap.size > 0) {
+    for (const code of allCodes) {
+      if (lookupMap.has(code)) {
+        matchedGroup = lookupMap.get(code);
+        break;
+      }
+    }
 
-  const directGrouping = (row.grouping && String(row.grouping).trim()) || (row.part_grouping && String(row.part_grouping).trim()) || '';
+    // Secondary VLOOKUP by description if code didn't hit
+    if (!matchedGroup && lookupMap.descMap && lookupMap.descMap.size > 0) {
+      const desc = (row.description || (rawPayloadObj && getPartNameFromRow(rawPayloadObj)) || '').trim().toUpperCase();
+      if (desc && lookupMap.descMap.has(desc)) {
+        matchedGroup = lookupMap.descMap.get(desc);
+      }
+    }
+  }
 
-  // Priority: direct grouping column in part_replacement, then lookup from part_grouping table
-  const lookupGroup =
-    directGrouping ||
-    (lookupMap && normItemCode && lookupMap.get(normItemCode)) ||
-    (lookupMap && normPartCode && lookupMap.get(normPartCode)) ||
-    (lookupMap && normPayloadCode && lookupMap.get(normPayloadCode)) ||
-    (rawPayloadObj && (rawPayloadObj['Grouping'] || rawPayloadObj['grouping'] || rawPayloadObj['Part Grouping'] || rawPayloadObj['part_grouping'] || rawPayloadObj['Part Group'] || rawPayloadObj['grouping name'] || rawPayloadObj['grouping_name'])) ||
-    (row.description && String(row.description).trim()) ||
-    itemCode ||
-    'Other Components';
+  // 3. If no match from part_grouping table, check explicit grouping in raw payload
+  if (!matchedGroup && rawPayloadObj) {
+    const rawGrouping = getGroupingNameFromRow(rawPayloadObj);
+    if (rawGrouping && rawGrouping !== String(row.item_code).trim() && rawGrouping !== String(row.description).trim()) {
+      matchedGroup = rawGrouping;
+    }
+  }
 
-  const finalGrouping = String(lookupGroup).trim() || 'Other Components';
+  // 4. If part_replacement has an existing non-polluted grouping (i.e. not equal to description/item_code)
+  if (!matchedGroup) {
+    const existingGrouping = (row.part_grouping && String(row.part_grouping).trim()) || (row.grouping && String(row.grouping).trim()) || '';
+    const existingDesc = (row.description && String(row.description).trim()) || '';
+    const existingCode = (row.item_code && String(row.item_code).trim()) || '';
+    if (existingGrouping && existingGrouping !== existingDesc && existingGrouping !== existingCode) {
+      matchedGroup = existingGrouping;
+    }
+  }
+
+  // 5. Fallback
+  const finalGrouping = String(matchedGroup || 'Other Components').trim() || 'Other Components';
 
   return {
     ...row,
@@ -637,29 +704,54 @@ function enrichRowWithLookup(row, lookupMap) {
 }
 
 /**
- * Loads QA lookup dictionary from `part_grouping` table.
- * Maps partcode (normalized uppercase) -> grouping name.
+ * Loads QA lookup dictionaries from `part_grouping` table.
+ * Returns codeMap Map with attached descMap.
+ * - codeMap: Normalized item_code / part_code -> grouping name
+ * - descMap: Normalized description / part_name -> grouping name
  */
 async function getPartGroupingLookupMap() {
-  const lookupMap = new Map();
+  const codeMap = new Map();
+  const descMap = new Map();
 
   if (supabase) {
     try {
-      const { data, error } = await supabase
-        .from('part_grouping')
-        .select('*');
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      let hasMore = true;
 
-      if (!error && data && Array.isArray(data)) {
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('part_grouping')
+          .select('*')
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error || !data || data.length === 0) {
+          break;
+        }
+
         for (const row of data) {
           const groupName = getGroupingNameFromRow(row);
-          const partCode = getPartCodeFromRow(row);
-
-          if (groupName && partCode) {
-            const normCode = partCode.toUpperCase();
-            if (!lookupMap.has(normCode)) {
-              lookupMap.set(normCode, groupName);
+          if (groupName) {
+            const codes = getAllPartCodesFromRow(row);
+            for (const code of codes) {
+              if (!codeMap.has(code)) {
+                codeMap.set(code, groupName);
+              }
+            }
+            const desc = getPartNameFromRow(row);
+            if (desc) {
+              const normDesc = desc.trim().toUpperCase();
+              if (!descMap.has(normDesc)) {
+                descMap.set(normDesc, groupName);
+              }
             }
           }
+        }
+
+        if (data.length < PAGE_SIZE) {
+          hasMore = false;
+        } else {
+          from += PAGE_SIZE;
         }
       }
     } catch (e) {
@@ -673,12 +765,19 @@ async function getPartGroupingLookupMap() {
       if (sqlRows && Array.isArray(sqlRows)) {
         for (const row of sqlRows) {
           const groupName = getGroupingNameFromRow(row);
-          const partCode = getPartCodeFromRow(row);
-
-          if (groupName && partCode) {
-            const normCode = partCode.toUpperCase();
-            if (!lookupMap.has(normCode)) {
-              lookupMap.set(normCode, groupName);
+          if (groupName) {
+            const codes = getAllPartCodesFromRow(row);
+            for (const code of codes) {
+              if (!codeMap.has(code)) {
+                codeMap.set(code, groupName);
+              }
+            }
+            const desc = getPartNameFromRow(row);
+            if (desc) {
+              const normDesc = desc.trim().toUpperCase();
+              if (!descMap.has(normDesc)) {
+                descMap.set(normDesc, groupName);
+              }
             }
           }
         }
@@ -688,13 +787,14 @@ async function getPartGroupingLookupMap() {
     }
   }
 
-  return lookupMap;
+  codeMap.descMap = descMap;
+  return codeMap;
 }
 
 /**
  * Performs a QA lookup update from `part_grouping` table into `part_replacement` table.
- * Takes item_code from part_replacement and compares with partcode from part_grouping.
- * On match, pastes the respective grouping name into part_replacement.part_grouping.
+ * Takes item_code / part_code from part_replacement, looks up in part_grouping table,
+ * and updates part_replacement.part_grouping and grouping.
  */
 async function syncPartGroupingLookup() {
   let updatedCount = 0;
@@ -706,23 +806,6 @@ async function syncPartGroupingLookup() {
 
   if (supabase) {
     try {
-      // 1. Fast batch update per distinct partcode in lookupMap
-      for (const [normCode, groupName] of lookupMap.entries()) {
-        try {
-          const { data, error } = await supabase
-            .from('part_replacement')
-            .update({ part_grouping: groupName, grouping: groupName })
-            .ilike('item_code', normCode)
-            .select('id');
-          if (!error && data) {
-            updatedCount += data.length;
-          }
-        } catch (err) {
-          // ignore single entry error
-        }
-      }
-
-      // 2. Comprehensive check for padded/whitespace-trimmed item_codes across all pages
       let from = 0;
       const PAGE_SIZE = 1000;
       let hasMore = true;
@@ -730,23 +813,38 @@ async function syncPartGroupingLookup() {
       while (hasMore) {
         const { data: batch, error } = await supabase
           .from('part_replacement')
-          .select('id, item_code, part_grouping')
+          .select('id, item_code, description, part_grouping, grouping, raw_payload')
           .range(from, from + PAGE_SIZE - 1);
 
         if (error || !batch || batch.length === 0) {
           break;
         }
 
+        const updatesByGroup = new Map(); // targetGroup -> array of ids
+
         for (const item of batch) {
-          const rawCode = (item.item_code || '').trim().toUpperCase();
-          if (rawCode && lookupMap.has(rawCode)) {
-            const targetGroup = lookupMap.get(rawCode);
-            if (item.part_grouping !== targetGroup || item.grouping !== targetGroup) {
-              await supabase
-                .from('part_replacement')
-                .update({ part_grouping: targetGroup, grouping: targetGroup })
-                .eq('id', item.id);
-              updatedCount++;
+          const enriched = enrichRowWithLookup(item, lookupMap);
+          const targetGroup = enriched.part_grouping;
+          if (targetGroup && (item.part_grouping !== targetGroup || item.grouping !== targetGroup)) {
+            if (!updatesByGroup.has(targetGroup)) {
+              updatesByGroup.set(targetGroup, []);
+            }
+            updatesByGroup.get(targetGroup).push(item.id);
+          }
+        }
+
+        // Batch update by group
+        for (const [targetGroup, ids] of updatesByGroup.entries()) {
+          const CHUNK_SIZE = 100;
+          for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+            const idChunk = ids.slice(i, i + CHUNK_SIZE);
+            const { error: updateErr } = await supabase
+              .from('part_replacement')
+              .update({ part_grouping: targetGroup, grouping: targetGroup })
+              .in('id', idChunk);
+
+            if (!updateErr) {
+              updatedCount += idChunk.length;
             }
           }
         }
@@ -767,11 +865,12 @@ async function syncPartGroupingLookup() {
       const [res] = await pool.query(
         `UPDATE part_replacement pr
          JOIN part_grouping pg ON (
-           UPPER(TRIM(pr.item_code)) = UPPER(TRIM(COALESCE(pg.partcode, pg.part_code, pg.item_code, '')))
+           UPPER(TRIM(pr.item_code)) = UPPER(TRIM(COALESCE(pg.item_code, pg.part_code, pg.partcode, '')))
+           OR UPPER(TRIM(COALESCE(pr.part_code, ''))) = UPPER(TRIM(COALESCE(pg.part_code, pg.partcode, pg.item_code, '')))
          )
-         SET pr.part_grouping = COALESCE(pg.groupingname, pg.grouping_name, pg.part_grouping, pg.grouping),
-             pr.grouping = COALESCE(pg.groupingname, pg.grouping_name, pg.part_grouping, pg.grouping)
-         WHERE pr.part_grouping IS NULL OR pr.part_grouping = '' OR pr.part_grouping != COALESCE(pg.groupingname, pg.grouping_name, pg.part_grouping, pg.grouping)`
+         SET pr.part_grouping = COALESCE(pg.part_grouping, pg.grouping, pg.grouping_name, pg.groupingname),
+             pr.grouping = COALESCE(pg.part_grouping, pg.grouping, pg.grouping_name, pg.groupingname)
+         WHERE pr.part_grouping IS NULL OR pr.part_grouping = '' OR pr.part_grouping != COALESCE(pg.part_grouping, pg.grouping, pg.grouping_name, pg.groupingname)`
       );
       if (res && res.affectedRows) {
         updatedCount += res.affectedRows;
@@ -780,16 +879,16 @@ async function syncPartGroupingLookup() {
       try {
         const [res2] = await pool.query(
           `UPDATE part_replacement
-           SET part_grouping = COALESCE(pg.groupingname, pg.grouping_name, pg.part_grouping, pg.grouping),
-               grouping = COALESCE(pg.groupingname, pg.grouping_name, pg.part_grouping, pg.grouping)
+           SET part_grouping = COALESCE(pg.part_grouping, pg.grouping, pg.grouping_name, pg.groupingname),
+               grouping = COALESCE(pg.part_grouping, pg.grouping, pg.grouping_name, pg.groupingname)
            FROM part_grouping pg
-           WHERE UPPER(TRIM(part_replacement.item_code)) = UPPER(TRIM(COALESCE(pg.partcode, pg.part_code, pg.item_code, '')))`
+           WHERE UPPER(TRIM(part_replacement.item_code)) = UPPER(TRIM(COALESCE(pg.item_code, pg.part_code, pg.partcode, '')))`
         );
         if (res2 && res2.affectedRows) {
           updatedCount += res2.affectedRows;
         }
       } catch (err2) {
-        console.warn('⚠️ SQL pool syncPartGroupingLookup error:', e.message);
+        console.warn('⚠️ SQL pool syncPartGroupingLookup error:', err2.message);
       }
     }
   }
@@ -866,14 +965,6 @@ async function getPartGroupingCounts({ date = '', productCategory = '', subCateg
     const subCat = (row.sub_category || '').toUpperCase().trim();
     const model = (row.model || '').toUpperCase().trim();
     const isTl = subCat === 'TL' || model.startsWith('TL');
-
-    let parsedPayload = null;
-    if (row.raw_payload) {
-      if (typeof row.raw_payload === 'object') parsedPayload = row.raw_payload;
-      else {
-        try { parsedPayload = JSON.parse(row.raw_payload); } catch (e) {}
-      }
-    }
 
     const partName = String(row.grouping || row.part_grouping || 'Other Components').trim();
     const groupKey = partName.toUpperCase();

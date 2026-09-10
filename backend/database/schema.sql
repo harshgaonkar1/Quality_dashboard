@@ -166,6 +166,7 @@ ALTER TABLE part_grouping ADD COLUMN IF NOT EXISTS part_name VARCHAR(255) NULL;
 CREATE INDEX IF NOT EXISTS idx_part_grouping_item_code ON part_grouping (item_code);
 CREATE INDEX IF NOT EXISTS idx_part_grouping_part_code ON part_grouping (part_code);
 CREATE INDEX IF NOT EXISTS idx_part_grouping_name ON part_grouping (part_grouping);
+CREATE INDEX IF NOT EXISTS idx_part_grouping_desc ON part_grouping (part_description);
 
 -- ------------------------------------------------------------
 -- TABLE: upload_logs

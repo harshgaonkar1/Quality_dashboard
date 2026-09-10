@@ -257,8 +257,8 @@ function processRows(rawRows, uploadType = 'PRODUCT_REPLACEMENT') {
       serial_number: serialNumber || null,
       item_code: itemCode || partCode || partNumber || null,
       description: description || partDescription || partName || null,
-      part_grouping: rawPartGrouping || description || partDescription || null,
-      grouping: rawPartGrouping || description || partDescription || null,
+      part_grouping: rawPartGrouping ? rawPartGrouping.trim() : null,
+      grouping: rawPartGrouping ? rawPartGrouping.trim() : null,
       problem_description: problemDescription || customerComplaint || null,
       part_number: partNumber || null,
       part_name: partName || null,
@@ -295,25 +295,32 @@ function processGroupingRows(rawRows) {
     const rowNumber = rawRows[i].rowNumber || (i + 2);
 
     const itemCode = getFieldValue(data, [
-      'ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code',
-      'Part Code', 'part code', 'PartCode', 'part_code', 'PART CODE',
-      'Spare Code', 'spare code', 'SpareCode',
+      'ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code', 'item_code',
+      'Part Code', 'part code', 'PartCode', 'part_code', 'PART CODE', 'Part_Code',
+      'Spare Code', 'spare code', 'SpareCode', 'spare_code', 'Spare', 'spare',
+      'Material Code', 'material code', 'Material', 'material', 'Mat Code', 'mat code',
+      'Part No', 'part no', 'Part_No', 'Part Number', 'part number', 'Code', 'code',
     ]);
     const partCode = getFieldValue(data, [
-      'Part Code', 'part code', 'PartCode', 'part_code', 'PART CODE',
-      'ItemCode', 'Item Code', 'item code', 'ITEM CODE',
+      'Part Code', 'part code', 'PartCode', 'part_code', 'PART CODE', 'Part_Code',
+      'ItemCode', 'Item Code', 'item code', 'ITEM CODE', 'Item_Code', 'item_code',
+      'Spare Code', 'spare code', 'SpareCode', 'spare_code', 'Spare', 'spare',
+      'Part No', 'part no', 'Part_No', 'Part Number', 'part number',
     ]);
     const grouping = getFieldValue(data, [
       'Part Grouping', 'part grouping', 'PART GROUPING', 'Part_Grouping', 'part_grouping',
-      'Part Group', 'part group', 'Grouping', 'grouping', 'Group', 'group',
-      'Group Name', 'group_name', 'Spare Group', 'spare group',
+      'Part Group', 'part group', 'PART GROUP', 'Part_Group', 'part_group',
+      'Grouping', 'grouping', 'GROUPING', 'Group', 'group', 'GROUP',
+      'Grouping Name', 'grouping name', 'GROUPING NAME', 'grouping_name', 'groupingname',
+      'Group Name', 'group_name', 'GROUP NAME', 'Spare Group', 'spare group', 'QA Grouping', 'qa grouping',
     ]);
     const description = getFieldValue(data, [
-      'Description', 'description', 'DESCRIPTION', 'Part Description', 'part description',
-      'Part Name', 'part name', 'Spare Desc', 'spare desc',
+      'Description', 'description', 'DESCRIPTION', 'Part Description', 'part description', 'PART DESCRIPTION',
+      'Part Name', 'part name', 'PART NAME', 'Spare Desc', 'spare desc', 'SPARE DESC',
+      'Material Description', 'material description', 'MATERIAL DESCRIPTION', 'Name', 'name',
     ]);
     const category = getFieldValue(data, [
-      'Category', 'category', 'Product Category', 'Sub Category', 'mat cat',
+      'Category', 'category', 'CATEGORY', 'Product Category', 'product category', 'Sub Category', 'sub category', 'mat cat', 'Mat Cat',
     ]);
 
     const resolvedCode = itemCode || partCode;

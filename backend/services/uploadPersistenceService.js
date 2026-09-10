@@ -74,10 +74,22 @@ async function batchInsert(uploadType, records) {
           .from(config.table)
           .insert(cleanedChunk)
           .select('id');
+      } else if (uploadType === 'PART_GROUPING') {
+        try {
+          res = await supabase
+            .from(config.table)
+            .upsert(cleanedChunk, { onConflict: conflictKey, ignoreDuplicates: false })
+            .select('id');
+        } catch (upsertErr) {
+          res = await supabase
+            .from(config.table)
+            .insert(cleanedChunk)
+            .select('id');
+        }
       } else {
         res = await supabase
           .from(config.table)
-          .upsert(cleanedChunk, { onConflict: conflictKey, ignoreDuplicates: uploadType !== 'PART_GROUPING' })
+          .upsert(cleanedChunk, { onConflict: conflictKey, ignoreDuplicates: true })
           .select('id');
       }
 
