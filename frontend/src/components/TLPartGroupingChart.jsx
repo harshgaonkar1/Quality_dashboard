@@ -18,9 +18,9 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
-  // Top part groups
-  const topGroups = useMemo(() => (partGroups || []).slice(0, 10), [partGroups]);
-  const isZero = tlTotal === 0 || topGroups.length === 0;
+  // Display all part groups so bar graph counts match total replacements
+  const allGroups = useMemo(() => partGroups || [], [partGroups]);
+  const isZero = tlTotal === 0 || allGroups.length === 0;
 
   // Theme colors
   const textColor = isAdmin ? '#4ade80' : isDark ? '#F1F5F9' : '#0F172A';
@@ -41,45 +41,46 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
     moreThan4: isAdmin ? '#14532d' : '#881337',
   };
 
-  const categories = useMemo(() => topGroups.map((g) => g.partName), [topGroups]);
+  const categories = useMemo(() => allGroups.map((g) => g.partName), [allGroups]);
 
+  // Stacked Series: Breakdown by Ageing Bucket across all Part Names
   const stackedSeries = useMemo(() => [
     {
       name: 'Install Failure (0d)',
-      data: topGroups.map((g) => g.ageing?.installFailure || 0),
+      data: allGroups.map((g) => g.ageing?.installFailure || 0),
       color: AGEING_COLORS.installFailure,
     },
     {
       name: '0-3 Months',
-      data: topGroups.map((g) => g.ageing?.months0_3 || 0),
+      data: allGroups.map((g) => g.ageing?.months0_3 || 0),
       color: AGEING_COLORS.months0_3,
     },
     {
       name: '1 Year',
-      data: topGroups.map((g) => g.ageing?.year1 || 0),
+      data: allGroups.map((g) => g.ageing?.year1 || 0),
       color: AGEING_COLORS.year1,
     },
     {
       name: '2 Year',
-      data: topGroups.map((g) => g.ageing?.year2 || 0),
+      data: allGroups.map((g) => g.ageing?.year2 || 0),
       color: AGEING_COLORS.year2,
     },
     {
       name: '3 Year',
-      data: topGroups.map((g) => g.ageing?.year3 || 0),
+      data: allGroups.map((g) => g.ageing?.year3 || 0),
       color: AGEING_COLORS.year3,
     },
     {
       name: '4 Year',
-      data: topGroups.map((g) => g.ageing?.year4 || 0),
+      data: allGroups.map((g) => g.ageing?.year4 || 0),
       color: AGEING_COLORS.year4,
     },
     {
       name: '> 4 Years',
-      data: topGroups.map((g) => g.ageing?.moreThan4 || 0),
+      data: allGroups.map((g) => g.ageing?.moreThan4 || 0),
       color: AGEING_COLORS.moreThan4,
     },
-  ], [topGroups, AGEING_COLORS]);
+  ], [allGroups, AGEING_COLORS]);
 
   const stackedOptions = useMemo(() => ({
     chart: {
@@ -87,7 +88,8 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
       backgroundColor: 'transparent',
       animation: false,
       style: { fontFamily: isAdmin ? '"JetBrains Mono", monospace' : 'Inter, system-ui, sans-serif' },
-      height: isCompact ? 250 : 280,
+      height: isCompact ? 350 : 390,
+      spacingBottom: 15,
     },
     title: { text: null },
     credits: { enabled: false },
@@ -95,8 +97,20 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
       categories: categories.length > 0 ? categories : ['No Parts Data'],
       lineColor,
       labels: {
-        style: { color: textColor, fontSize: '11px', fontWeight: '700' },
-        autoRotation: [-25, -45],
+        rotation: -45,
+        align: 'right',
+        step: 1,
+        reserveSpace: true,
+        style: {
+          color: textColor,
+          fontSize: categories.length > 18 ? '9px' : categories.length > 12 ? '10px' : '11px',
+          fontWeight: '700',
+          textOverflow: 'none',
+          whiteSpace: 'nowrap',
+        },
+        formatter: function () {
+          return this.value;
+        },
       },
     },
     yAxis: {
@@ -166,8 +180,8 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
         stacking: 'normal',
         animation: false,
         borderRadius: 4,
-        pointPadding: 0.12,
-        groupPadding: 0.08,
+        pointPadding: 0.1,
+        groupPadding: 0.05,
       },
     },
     series: stackedSeries,
@@ -197,7 +211,7 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
     return totals;
   }, [partGroups]);
 
-  const topPart = topGroups[0] || null;
+  const topPart = allGroups[0] || null;
 
   return (
     <div className="panel p-3 lg:p-4 flex flex-col justify-between border-t-4 border-t-rose-500 shadow-panel h-full relative overflow-hidden">

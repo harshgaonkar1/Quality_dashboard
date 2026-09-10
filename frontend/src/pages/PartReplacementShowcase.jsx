@@ -28,8 +28,8 @@ const PAGE_SIZE = 50; // High capacity page size so all entries fit on screen fo
 export default function PartReplacementShowcase() {
   const { isAdmin } = useAdmin();
 
-  // Slide state: 'graphs' | 'table'
-  const [activeSlide, setActiveSlide] = useState('graphs');
+  // Slide state: 'fl' | 'tl' | 'table'
+  const [activeSlide, setActiveSlide] = useState('fl');
   const [autoPlay, setAutoPlay] = useState(true);
   const [timeLeft, setTimeLeft] = useState(ROTATION_INTERVAL_SEC);
   const [isFullscreen, setIsFullscreen] = useState(true);
@@ -128,14 +128,18 @@ export default function PartReplacementShowcase() {
     refetch: refetchDetails,
   } = useFetch(detailsFetchFn, [detailsFetchFn]);
 
-  // Handle 30-second auto-rotation countdown timer
+  // Handle 30-second auto-rotation countdown timer across 3 slides ('fl' -> 'tl' -> 'table')
   useEffect(() => {
     if (!autoPlay) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setActiveSlide((curr) => (curr === 'graphs' ? 'table' : 'graphs'));
+          setActiveSlide((curr) => {
+            if (curr === 'fl') return 'tl';
+            if (curr === 'tl') return 'table';
+            return 'fl';
+          });
           return ROTATION_INTERVAL_SEC;
         }
         return prev - 1;
@@ -148,7 +152,7 @@ export default function PartReplacementShowcase() {
   // Switch manual slide handler
   function handleSelectSlide(slide) {
     setActiveSlide(slide);
-    setTimeLeft(ROTATION_INTERVAL_SEC);
+    setTimeLeft(ROTATION_INTERVAL_SEC); // Reset timer on manual action
   }
 
   // Toggle Auto-Play
@@ -183,8 +187,21 @@ export default function PartReplacementShowcase() {
   }, []);
 
   // TV Remote key handlers & shortcuts
-  const handleToggleSlide = useCallback(() => {
-    setActiveSlide((curr) => (curr === 'graphs' ? 'table' : 'graphs'));
+  const handleNextSlide = useCallback(() => {
+    setActiveSlide((curr) => {
+      if (curr === 'fl') return 'tl';
+      if (curr === 'tl') return 'table';
+      return 'fl';
+    });
+    setTimeLeft(ROTATION_INTERVAL_SEC);
+  }, []);
+
+  const handlePrevSlide = useCallback(() => {
+    setActiveSlide((curr) => {
+      if (curr === 'fl') return 'table';
+      if (curr === 'tl') return 'fl';
+      return 'tl';
+    });
     setTimeLeft(ROTATION_INTERVAL_SEC);
   }, []);
 
@@ -209,13 +226,13 @@ export default function PartReplacementShowcase() {
   }, [refetchGrouping, refetchDetails]);
 
   useTVRemote({
-    onLeft: handleToggleSlide,
-    onRight: handleToggleSlide,
+    onLeft: handlePrevSlide,
+    onRight: handleNextSlide,
     onPlayPause: handleToggleAutoPlayCallback,
-    onNext: handleToggleSlide,
-    onPrev: handleToggleSlide,
+    onNext: handleNextSlide,
+    onPrev: handlePrevSlide,
     onFullscreen: handleToggleFullscreenCallback,
-    onRed: handleToggleSlide,
+    onRed: handleNextSlide,
     onGreen: handleToggleAutoPlayCallback,
     onYellow: handleToggleFullscreenCallback,
     onBlue: handleRefreshData,
@@ -332,15 +349,27 @@ export default function PartReplacementShowcase() {
                   <div className="flex flex-col gap-1">
                     <button
                       onClick={() => {
-                        handleSelectSlide('graphs');
+                        handleSelectSlide('fl');
                         setIsMenuOpen(false);
                       }}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer w-full text-left ${activeSlide === 'graphs'
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer w-full text-left ${activeSlide === 'fl'
                         ? 'bg-signal/15 text-signal-dark dark:text-signal border border-signal/40'
                         : 'text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800'
                         }`}
                     >
-                      Grouping Graphs View
+                      FL Parts Graph
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleSelectSlide('tl');
+                        setIsMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer w-full text-left ${activeSlide === 'tl'
+                        ? 'bg-signal/15 text-signal-dark dark:text-signal border border-signal/40'
+                        : 'text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800'
+                        }`}
+                    >
+                      TL Parts Graph
                     </button>
                     <button
                       onClick={() => {
@@ -372,7 +401,7 @@ export default function PartReplacementShowcase() {
                       </button>
                       <button
                         onClick={() => {
-                          handleSelectSlide(activeSlide === 'graphs' ? 'table' : 'graphs');
+                          handleNextSlide();
                           setIsMenuOpen(false);
                         }}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold text-ink-700 dark:text-mist-300 hover:bg-mist-100 dark:hover:bg-ink-800 transition-all cursor-pointer w-full text-left"
@@ -409,7 +438,14 @@ export default function PartReplacementShowcase() {
             <div className="flex items-center justify-between text-xs font-bold text-ink-500 dark:text-mist-400 mb-0.5">
               <span className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
-                Current View: <strong className="text-ink-950 dark:text-white uppercase font-black">{activeSlide === 'graphs' ? 'Grouping Graphs' : 'Data Table'}</strong>
+                Current View:{' '}
+                <strong className="text-ink-950 dark:text-white uppercase font-black">
+                  {activeSlide === 'fl'
+                    ? 'FL Part Grouping'
+                    : activeSlide === 'tl'
+                    ? 'TL Part Grouping'
+                    : 'Data Table'}
+                </strong>
               </span>
               <span className="text-[10px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
                 {date === 'latest'
@@ -431,23 +467,30 @@ export default function PartReplacementShowcase() {
         </div>
       </div>
 
-      {/* Main Slide Area: Both kept mounted in DOM to PREVENT re-animation on slide switch */}
+      {/* Main Slide Area: All 3 kept mounted in DOM to PREVENT re-animation on slide switch */}
       <div className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-auto">
-        {/* Slide 1: Grouping Graphs (Always mounted, hidden when activeSlide !== 'graphs') */}
-        <div className={activeSlide === 'graphs' ? 'block h-full flex flex-col justify-between overflow-hidden' : 'hidden'}>
-          {groupingLoading && !groupingData && <LoadingSpinner label="Loading part grouping analytics…" />}
+        {/* Slide 1: FL Part Grouping Chart (Always mounted, hidden when activeSlide !== 'fl') */}
+        <div className={activeSlide === 'fl' ? 'block h-full flex flex-col justify-between overflow-hidden' : 'hidden'}>
+          {groupingLoading && !groupingData && <LoadingSpinner label="Loading FL part grouping analytics…" />}
           {groupingError && <ErrorBanner message={groupingError} onRetry={refetchGrouping} />}
           {groupingData && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full min-h-0">
-              {/* FL Part Grouping Chart */}
+            <div className="h-full min-h-0">
               <FLPartGroupingChart
                 partGroups={flPartGroups}
                 flTotal={flTotal}
                 activeDate={activeDate}
                 isCompact={isFullscreen}
               />
+            </div>
+          )}
+        </div>
 
-              {/* TL Part Grouping Chart */}
+        {/* Slide 2: TL Part Grouping Chart (Always mounted, hidden when activeSlide !== 'tl') */}
+        <div className={activeSlide === 'tl' ? 'block h-full flex flex-col justify-between overflow-hidden' : 'hidden'}>
+          {groupingLoading && !groupingData && <LoadingSpinner label="Loading TL part grouping analytics…" />}
+          {groupingError && <ErrorBanner message={groupingError} onRetry={refetchGrouping} />}
+          {groupingData && (
+            <div className="h-full min-h-0">
               <TLPartGroupingChart
                 partGroups={tlPartGroups}
                 tlTotal={tlTotal}
@@ -458,7 +501,7 @@ export default function PartReplacementShowcase() {
           )}
         </div>
 
-        {/* Slide 2: Data Table (Always mounted, hidden when activeSlide !== 'table') */}
+        {/* Slide 3: Data Table (Always mounted, hidden when activeSlide !== 'table') */}
         <div className={activeSlide === 'table' ? 'block h-full flex flex-col justify-between overflow-hidden space-y-1.5' : 'hidden'}>
           <div className="flex items-center justify-between shrink-0">
             <h3 className="text-xs lg:text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
