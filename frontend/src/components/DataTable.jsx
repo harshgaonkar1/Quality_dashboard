@@ -72,7 +72,7 @@ export default function DataTable({
                 >
                   {columns.map((col) => (
                     <td key={col.key} className={`text-ink-800 dark:text-mist-200 whitespace-nowrap ${tdPadding}`}>
-                      {col.render ? col.render(row) : row[col.key] ?? '—'}
+                      {col.render ? col.render(row, idx) : row[col.key] ?? '—'}
                     </td>
                   ))}
                 </tr>

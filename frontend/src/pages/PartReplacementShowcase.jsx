@@ -23,7 +23,8 @@ import { useAdmin } from '../context/AdminContext';
 import { formatDate } from '../utils/formatDate';
 
 const ROTATION_INTERVAL_SEC = 30;
-const PAGE_SIZE = 50; // High capacity page size so all entries fit on screen for TV showcase view
+const WINDOW_SIZE = 10; // Exactly 10 entries displayed per window
+const FETCH_SIZE = 500; // Fetch full dataset for smooth continuous auto-scrolling
 
 export default function PartReplacementShowcase() {
   const { isAdmin } = useAdmin();
@@ -39,8 +40,9 @@ export default function PartReplacementShowcase() {
   const [productCategory, setProductCategory] = useState('');
   const [date, setDate] = useState('latest');
 
-  // Table state
-  const [page, setPage] = useState(1);
+  // Table state: Window-based pagination (1-10, 11-20, 21-30...)
+  const [windowIndex, setWindowIndex] = useState(0);
+  const [isTablePaused, setIsTablePaused] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('spu_created_date');
   const [sortDir, setSortDir] = useState('DESC');
@@ -113,13 +115,13 @@ export default function PartReplacementShowcase() {
       fetchDashboardDetails({
         productCategory: productCategory || undefined,
         date: date || undefined,
-        page,
-        pageSize: PAGE_SIZE,
+        page: 1,
+        pageSize: FETCH_SIZE,
         search: debouncedSearch,
         sortBy,
         sortDir,
       }),
-    [productCategory, date, page, debouncedSearch, sortBy, sortDir]
+    [productCategory, date, debouncedSearch, sortBy, sortDir]
   );
   const {
     data: detailsData,
@@ -127,6 +129,50 @@ export default function PartReplacementShowcase() {
     error: detailsError,
     refetch: refetchDetails,
   } = useFetch(detailsFetchFn, [detailsFetchFn]);
+
+  // Filter out Microwave / MW models for clean TL & FL dataset
+  const allRows = useMemo(() => {
+    const rows = detailsData?.data?.rows || [];
+    return rows.filter((row) => {
+      const model = (row.model || '').toUpperCase();
+      const subCat = (row.sub_category || '').toUpperCase();
+      const matCat = (row.mat_cat || '').toUpperCase();
+      return (
+        !model.startsWith('MW') &&
+        subCat !== 'MW' &&
+        subCat !== 'MWO' &&
+        subCat !== 'MICROWAVE' &&
+        matCat !== 'MW' &&
+        matCat !== 'MWO' &&
+        matCat !== 'MICROWAVE'
+      );
+    });
+  }, [detailsData?.data?.rows]);
+
+  const totalWindows = Math.max(1, Math.ceil(allRows.length / WINDOW_SIZE));
+
+  // Auto-cycle through 10-entry windows (1-10 -> 11-20 -> 21-30...) every 5 seconds when table slide is active
+  useEffect(() => {
+    if (!autoPlay || isTablePaused || activeSlide !== 'table' || totalWindows <= 1) return;
+
+    const windowInterval = setInterval(() => {
+      setWindowIndex((prev) => (prev + 1) % totalWindows);
+    }, 5000);
+
+    return () => clearInterval(windowInterval);
+  }, [autoPlay, isTablePaused, activeSlide, totalWindows]);
+
+  // Reset window index when filters or active slide change
+  useEffect(() => {
+    setWindowIndex(0);
+  }, [productCategory, date, debouncedSearch, activeSlide]);
+
+  // Calculate current 10-entry window slice
+  const startIndex = windowIndex * WINDOW_SIZE;
+  const endIndex = Math.min(startIndex + WINDOW_SIZE, allRows.length);
+  const visibleRows = useMemo(() => {
+    return allRows.slice(startIndex, endIndex);
+  }, [allRows, startIndex, endIndex]);
 
   // Handle 30-second auto-rotation countdown timer across 3 slides ('fl' -> 'tl' -> 'table')
   useEffect(() => {
@@ -243,48 +289,22 @@ export default function PartReplacementShowcase() {
     },
   });
 
-  // Table columns configuration matching user's requirements
-  const columns = useMemo(() => [
+  // Table columns configuration matching ProductReplacementShowcase format
+  const columns = [
     { key: 'branch', label: 'Branch', sortable: true },
     { key: 'model', label: 'Machine Model', sortable: true },
     { key: 'serial_number', label: 'Serial Number', sortable: true },
     {
-      key: 'grouping',
-      label: 'Grouping',
+      key: 'part_grouping',
+      label: 'Part Grouping',
       sortable: true,
-      render: (row) => (
-        <span className="font-semibold px-2 py-0.5 rounded text-[11px] bg-signal/10 dark:bg-signal/20 text-signal-dark dark:text-signal-light border border-signal/30 inline-block">
-          {row.grouping || row.part_grouping || 'Other'}
-        </span>
-      ),
+      render: (row) => row.grouping || row.part_grouping || 'Other',
     },
-    { key: 'ticket_no', label: 'Ticket', sortable: true },
-    {
-      key: 'ageing_days',
-      label: 'Ageing',
-      sortable: true,
-      render: (row) => {
-        const days = row.ageing_days;
-        if (days === null || days === undefined) {
-          return <span className="text-ink-400 dark:text-mist-400 font-mono text-[11px]">N/A</span>;
-        }
-        if (days === 0 || days === '0') {
-          return (
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
-              0d (Install)
-            </span>
-          );
-        }
-        return (
-          <span className="font-mono text-[11px] font-bold text-ink-800 dark:text-mist-200">
-            {days}d
-          </span>
-        );
-      },
-    },
-  ], []);
+    { key: 'admin_comment', label: 'Remarks', sortable: false }
+  ];
 
   function handleSort(columnKey) {
+    setWindowIndex(0);
     if (sortBy === columnKey) {
       setSortDir((prev) => (prev === 'ASC' ? 'DESC' : 'ASC'));
     } else {
@@ -507,28 +527,41 @@ export default function PartReplacementShowcase() {
             <h3 className="text-xs lg:text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
               <span>📋</span> Part Replacement Functional Defects Table
             </h3>
-            {detailsData?.data && (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-mist-200 dark:bg-ink-800 text-ink-700 dark:text-mist-300">
-                Total Records: {(detailsData.data.total || 0).toLocaleString()}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-signal/15 text-signal-dark dark:text-signal border border-signal/30 flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${autoPlay && !isTablePaused && totalWindows > 1 ? 'bg-signal animate-pulse' : 'bg-amber-500'}`} />
+                Auto-window: {autoPlay && !isTablePaused && totalWindows > 1 ? '5s' : 'Paused'}
               </span>
-            )}
+              {allRows.length > 0 && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-mist-200 dark:bg-ink-800 text-ink-700 dark:text-mist-300">
+                  Showing {startIndex + 1}-{endIndex} of {allRows.length.toLocaleString()}
+                </span>
+              )}
+            </div>
           </div>
 
           {detailsLoading && !detailsData && <LoadingSpinner label="Loading Table Records..." />}
           {detailsError && <ErrorBanner message={detailsError} onRetry={refetchDetails} />}
 
           {detailsData?.data && (
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div
+              className="flex-1 min-h-0 overflow-hidden"
+              onMouseEnter={() => setIsTablePaused(true)}
+              onMouseLeave={() => setIsTablePaused(false)}
+            >
               <DataTable
+                key={`table-window-${windowIndex}`}
                 columns={columns}
-                rows={detailsData.data.rows || []}
+                rows={visibleRows}
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
-                page={detailsData.data.page || page}
-                pageSize={detailsData.data.pageSize || PAGE_SIZE}
-                total={detailsData.data.total || 0}
-                onPageChange={setPage}
+                page={windowIndex + 1}
+                pageSize={WINDOW_SIZE}
+                total={allRows.length}
+                onPageChange={(newPage) => {
+                  setWindowIndex(Math.max(0, Math.min(newPage - 1, totalWindows - 1)));
+                }}
                 compact={true}
               />
             </div>
