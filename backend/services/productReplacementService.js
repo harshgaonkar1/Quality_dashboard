@@ -19,7 +19,7 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  */
 async function getDashboardSummary({ typeOfDamage = '', productCategory = '', date = '' } = {}) {
   let activeDate = date;
-  let latestDate = await productReplacementModel.getLatestDate();
+  let latestDate = await productReplacementModel.getLatestDate({ productCategory });
 
   if (date === 'latest') {
     activeDate = latestDate || '';
@@ -124,7 +124,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
   let activeDate = date;
 
   if (date === 'latest') {
-    activeDate = (await productReplacementModel.getLatestDate()) || '';
+    activeDate = (await productReplacementModel.getLatestDate({ productCategory })) || '';
   }
 
   if (ageingCategory) {
@@ -156,7 +156,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
 async function getDetailsForExport({ ageingCategory, search, typeOfDamage, productCategory, date }) {
   let activeDate = date;
   if (date === 'latest') {
-    activeDate = (await productReplacementModel.getLatestDate()) || '';
+    activeDate = (await productReplacementModel.getLatestDate({ productCategory })) || '';
   }
 
   let ageingMin = null;

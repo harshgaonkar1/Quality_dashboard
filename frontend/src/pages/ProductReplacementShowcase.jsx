@@ -8,7 +8,7 @@
 // Highcharts pie chart animates ONCE on load, staying mounted.
 // ============================================================
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFetch } from '../hooks/useFetch';
 import { useDebounce } from '../hooks/useDebounce';
 import { useTVRemote } from '../hooks/useTVRemote';
@@ -34,9 +34,9 @@ export default function ProductReplacementShowcase() {
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Filters state (defaults to 'latest' to display latest date data for that day only, typeOfDamage defaults to 'Functional')
+  // Filters state (defaults to 'latest' to display latest date data for that day only, typeOfDamage defaults to 'Functional', productCategory defaults to 'TL_FL' so MW is excluded)
   const [typeOfDamage, setTypeOfDamage] = useState('Functional');
-  const [productCategory, setProductCategory] = useState('');
+  const [productCategory, setProductCategory] = useState('TL_FL');
   const [date, setDate] = useState('latest');
 
   // Table state
@@ -89,9 +89,9 @@ export default function ProductReplacementShowcase() {
     };
   }, []);
 
-  // 1. Fetch Summary Data (for Pie Chart)
+  // 1. Fetch Summary Data (for Pie Chart - TL & FL only)
   const summaryFetchFn = useCallback(
-    () => fetchDashboardSummary({ typeOfDamage: typeOfDamage || 'Functional', productCategory, date }),
+    () => fetchDashboardSummary({ typeOfDamage: typeOfDamage || 'Functional', productCategory: productCategory || 'TL_FL', date }),
     [typeOfDamage, productCategory, date]
   );
   const {
@@ -101,12 +101,12 @@ export default function ProductReplacementShowcase() {
     refetch: refetchSummary,
   } = useFetch(summaryFetchFn, [summaryFetchFn]);
 
-  // 2. Fetch Details Data (for Data Table)
+  // 2. Fetch Details Data (for Data Table - TL & FL only)
   const detailsFetchFn = useCallback(
     () =>
       fetchDashboardDetails({
         typeOfDamage: typeOfDamage || 'Functional',
-        productCategory: productCategory || undefined,
+        productCategory: productCategory || 'TL_FL',
         date: date || undefined,
         page,
         pageSize: PAGE_SIZE,
@@ -429,7 +429,11 @@ export default function ProductReplacementShowcase() {
             <div className="flex-1 min-h-0 overflow-hidden">
               <DataTable
                 columns={columns}
-                rows={detailsData.data.rows}
+                rows={(detailsData.data.rows || []).filter((row) => {
+                  const model = (row.model || '').toUpperCase();
+                  const matCat = (row.mat_cat || '').toUpperCase();
+                  return !model.startsWith('MW') && matCat !== 'MW' && matCat !== 'MWO' && matCat !== 'MICROWAVE';
+                })}
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}

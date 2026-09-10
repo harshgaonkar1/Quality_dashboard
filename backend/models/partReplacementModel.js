@@ -9,19 +9,42 @@ const { supabase } = require('../database/supabaseClient');
 const { pool } = require('../database/connection');
 const { parseFlexibleDate, toMySQLDate } = require('../utils/dateUtils');
 
+function parsePartCategoryList(categoryStr) {
+  if (!categoryStr || typeof categoryStr !== 'string') return [];
+  const rawList = categoryStr.split(/[,|+_]/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const selected = new Set();
+  for (const s of rawList) {
+    if (s === 'ALL') return [];
+    if (s === 'TL' || s === 'TLU' || s === 'TLM') selected.add('TL');
+    else if (s === 'FL' || s === 'FLU') selected.add('FL');
+    else if (s === 'MW' || s === 'MWO' || s === 'MICROWAVE' || s === 'MWU') selected.add('MW');
+    else if (s === 'NO_MW' || s === 'EXCLUDE_MW') {
+      selected.add('TL');
+      selected.add('FL');
+    }
+  }
+  return Array.from(selected);
+}
+
 function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, productCategory = '', subCategory = '', date = '' } = {}) {
   let whereClause = '1=1';
   const params = [];
 
   const subCatFilter = subCategory || productCategory;
-  if (subCatFilter && subCatFilter.trim() !== '' && subCatFilter.toUpperCase() !== 'ALL') {
-    const cat = subCatFilter.trim().toUpperCase();
-    if (cat === 'TL') {
-      whereClause += " AND (UPPER(COALESCE(sub_category, '')) IN ('TL', 'TLU', 'TLM') OR UPPER(COALESCE(model, '')) LIKE 'TL%')";
-    } else if (cat === 'MW') {
-      whereClause += " AND (UPPER(COALESCE(sub_category, '')) IN ('MW', 'MWO', 'MICROWAVE', 'MWU') OR UPPER(COALESCE(model, '')) LIKE 'MW%')";
-    } else if (cat === 'FL') {
-      whereClause += " AND (UPPER(COALESCE(sub_category, '')) IN ('FL', 'FLU') OR UPPER(COALESCE(model, '')) LIKE 'FL%' OR (UPPER(COALESCE(model, '')) NOT LIKE 'TL%' AND UPPER(COALESCE(model, '')) NOT LIKE 'MW%' AND UPPER(COALESCE(sub_category, '')) NOT IN ('TL', 'TLU', 'TLM', 'MW', 'MWO', 'MICROWAVE', 'MWU')))";
+  const selectedCats = parsePartCategoryList(subCatFilter);
+  if (selectedCats.length > 0 && selectedCats.length < 3) {
+    const conditions = [];
+    if (selectedCats.includes('TL')) {
+      conditions.push("(UPPER(COALESCE(sub_category, '')) IN ('TL', 'TLU', 'TLM') OR UPPER(COALESCE(model, '')) LIKE 'TL%')");
+    }
+    if (selectedCats.includes('FL')) {
+      conditions.push("(UPPER(COALESCE(sub_category, '')) IN ('FL', 'FLU') OR UPPER(COALESCE(model, '')) LIKE 'FL%' OR (UPPER(COALESCE(model, '')) NOT LIKE 'TL%' AND UPPER(COALESCE(model, '')) NOT LIKE 'MW%' AND UPPER(COALESCE(sub_category, '')) NOT IN ('TL', 'TLU', 'TLM', 'MW', 'MWO', 'MICROWAVE', 'MWU')))");
+    }
+    if (selectedCats.includes('MW')) {
+      conditions.push("(UPPER(COALESCE(sub_category, '')) IN ('MW', 'MWO', 'MICROWAVE', 'MWU') OR UPPER(COALESCE(model, '')) LIKE 'MW%')");
+    }
+    if (conditions.length > 0) {
+      whereClause += ` AND (${conditions.join(' OR ')})`;
     }
   }
 
@@ -55,18 +78,29 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, pro
 function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax = null, productCategory = '', subCategory = '', date = '' }) {
   let q = query;
   const subCatFilter = subCategory || productCategory;
+  const selectedCats = parsePartCategoryList(subCatFilter);
 
-  if (subCatFilter && subCatFilter.trim() !== '' && subCatFilter.toUpperCase() !== 'ALL') {
-    const cat = subCatFilter.trim().toUpperCase();
-    if (cat === 'TL') {
-      q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%');
-    } else if (cat === 'MW') {
-      q = q.or('sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
-    } else if (cat === 'FL') {
-      q = q.or('sub_category.eq.FL,sub_category.eq.FLU,sub_category.eq.Flu,model.ilike.FL%')
-           .not('sub_category', 'in', '("MW","MWO","MICROWAVE","MWU","TL","TLU","TLM")')
-           .not('model', 'ilike', 'TL%')
-           .not('model', 'ilike', 'MW%');
+  if (selectedCats.length > 0 && selectedCats.length < 3) {
+    if (selectedCats.length === 1) {
+      const cat = selectedCats[0];
+      if (cat === 'TL') {
+        q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%');
+      } else if (cat === 'MW') {
+        q = q.or('sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
+      } else if (cat === 'FL') {
+        q = q.or('sub_category.eq.FL,sub_category.eq.FLU,sub_category.eq.Flu,model.ilike.FL%')
+             .not('sub_category', 'in', '("MW","MWO","MICROWAVE","MWU","TL","TLU","TLM")')
+             .not('model', 'ilike', 'TL%')
+             .not('model', 'ilike', 'MW%');
+      }
+    } else if (selectedCats.length === 2) {
+      if (selectedCats.includes('TL') && selectedCats.includes('FL')) {
+        q = q.not('sub_category', 'in', '("MW","MWO","MICROWAVE","MWU")').not('model', 'ilike', 'MW%');
+      } else if (selectedCats.includes('TL') && selectedCats.includes('MW')) {
+        q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%,sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
+      } else if (selectedCats.includes('FL') && selectedCats.includes('MW')) {
+        q = q.not('sub_category', 'in', '("TL","TLU","TLM")').not('model', 'ilike', 'TL%');
+      }
     }
   }
 

@@ -1,9 +1,4 @@
-// ============================================================
-// Filter Bar
-// ------------------------------------------------------------
-// Search input + active-scope indicator + Single Date Picker +
-// CSV export trigger, used above details tables & dashboards.
-// ============================================================
+import ModelMultiSelect from './ModelMultiSelect';
 
 export default function FilterBar({
   search,
@@ -94,23 +89,11 @@ export default function FilterBar({
         )}
 
         {onProductCategoryChange && (
-          <div className="flex items-center gap-1.5 bg-white dark:bg-ink-900 border border-mist-200 dark:border-ink-800 rounded-lg px-2.5 py-1.5 shadow-xs">
-            <label htmlFor="product-category-select" className="text-xs font-semibold text-ink-500 dark:text-mist-400 whitespace-nowrap">
-              Model Type:
-            </label>
-            <select
-              tabIndex={0}
-              id="product-category-select"
-              value={productCategory}
-              onChange={(e) => onProductCategoryChange(e.target.value)}
-              className="text-xs font-medium text-ink-900 dark:text-mist-100 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="" className="dark:bg-ink-900 dark:text-mist-100">All Models</option>
-              <option value="TL" className="dark:bg-ink-900 dark:text-mist-100">TL Models</option>
-              <option value="FL" className="dark:bg-ink-900 dark:text-mist-100">FL Models</option>
-              <option value="MW" className="dark:bg-ink-900 dark:text-mist-100">MW Models</option>
-            </select>
-          </div>
+          <ModelMultiSelect
+            value={productCategory}
+            onChange={onProductCategoryChange}
+            label="Model Type"
+          />
         )}
 
         {onAgeingCategoryChange && (

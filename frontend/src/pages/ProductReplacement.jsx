@@ -14,6 +14,7 @@ import SummaryCard from '../components/SummaryCard';
 import AgeingChart from '../components/AgeingChart';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
+import ModelMultiSelect from '../components/ModelMultiSelect';
 
 export default function ProductReplacement() {
   const navigate = useNavigate();
@@ -65,22 +66,11 @@ export default function ProductReplacement() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-white border border-mist-200 rounded-lg px-3 py-1.5 shadow-xs">
-            <label htmlFor="product-category-overview" className="text-xs font-semibold text-ink-500 whitespace-nowrap">
-              Model Type:
-            </label>
-            <select
-              id="product-category-overview"
-              value={productCategory}
-              onChange={(e) => setProductCategory(e.target.value)}
-              className="text-xs font-semibold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="">All Models</option>
-              <option value="TL">TL Models</option>
-              <option value="FL">FL Models</option>
-              <option value="MW">MW Models</option>
-            </select>
-          </div>
+          <ModelMultiSelect
+            value={productCategory}
+            onChange={setProductCategory}
+            label="Model Type"
+          />
 
           <button
             onClick={() => navigate('/product-replacement/showcase')}

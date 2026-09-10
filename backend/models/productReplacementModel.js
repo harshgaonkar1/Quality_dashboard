@@ -19,6 +19,23 @@ const BASE_WHERE = `
 `;
 const BASE_PARAMS = [...ALLOWED_STATUS, ...ALLOWED_MAT_CAT, ...ALLOWED_MACHINE_STATUS];
 
+function parseCategoryList(categoryStr) {
+  if (!categoryStr || typeof categoryStr !== 'string') return [];
+  const rawList = categoryStr.split(/[,|+_]/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const selected = new Set();
+  for (const s of rawList) {
+    if (s === 'ALL') return [];
+    if (s === 'TL' || s === 'TLU' || s === 'TLM') selected.add('TL');
+    else if (s === 'FL' || s === 'FLU') selected.add('FL');
+    else if (s === 'MW' || s === 'MWO' || s === 'MICROWAVE' || s === 'MWU') selected.add('MW');
+    else if (s === 'NO_MW' || s === 'EXCLUDE_MW') {
+      selected.add('TL');
+      selected.add('FL');
+    }
+  }
+  return Array.from(selected);
+}
+
 function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typeOfDamage = '', productCategory = '', date = '' } = {}) {
   let whereClause = BASE_WHERE;
   const params = [...BASE_PARAMS];
@@ -28,14 +45,20 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
     params.push(`%${typeOfDamage.trim()}%`);
   }
 
-  if (productCategory && productCategory.trim() !== '' && productCategory.toUpperCase() !== 'ALL') {
-    const cat = productCategory.trim().toUpperCase();
-    if (cat === 'TL') {
-      whereClause += " AND (UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL')";
-    } else if (cat === 'MW') {
-      whereClause += " AND (UPPER(model) LIKE 'MW%' OR UPPER(mat_cat) IN ('MW', 'MWO', 'MICROWAVE'))";
-    } else if (cat === 'FL') {
-      whereClause += " AND (UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL')))";
+  const selectedCats = parseCategoryList(productCategory);
+  if (selectedCats.length > 0 && selectedCats.length < 3) {
+    const conditions = [];
+    if (selectedCats.includes('TL')) {
+      conditions.push("(UPPER(model) LIKE 'TL%' OR UPPER(mat_cat) = 'TL')");
+    }
+    if (selectedCats.includes('FL')) {
+      conditions.push("(UPPER(mat_cat) IN ('WM', 'WD') OR UPPER(model) LIKE 'FL%' OR (UPPER(model) NOT LIKE 'TL%' AND UPPER(model) NOT LIKE 'MW%' AND UPPER(COALESCE(mat_cat, '')) NOT IN ('MW', 'MWO', 'MICROWAVE', 'TL')))");
+    }
+    if (selectedCats.includes('MW')) {
+      conditions.push("(UPPER(model) LIKE 'MW%' OR UPPER(mat_cat) IN ('MW', 'MWO', 'MICROWAVE'))");
+    }
+    if (conditions.length > 0) {
+      whereClause += ` AND (${conditions.join(' OR ')})`;
     }
   }
 
@@ -73,14 +96,25 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
     q = q.ilike('type_of_damage', `%${typeOfDamage.trim()}%`);
   }
 
-  if (productCategory && productCategory.trim() !== '' && productCategory.toUpperCase() !== 'ALL') {
-    const cat = productCategory.trim().toUpperCase();
-    if (cat === 'TL') {
-      q = q.in('mat_cat', ALLOWED_MAT_CAT).or('model.ilike.TL%,mat_cat.eq.TL');
-    } else if (cat === 'MW') {
-      q = q.in('mat_cat', ['MW', 'MWO', 'MICROWAVE']).or('mat_cat.eq.MW,mat_cat.eq.MWO,mat_cat.eq.MICROWAVE,model.ilike.MW%');
-    } else if (cat === 'FL') {
-      q = q.in('mat_cat', ['WM', 'WD']).not('model', 'ilike', 'TL%').not('model', 'ilike', 'MW%');
+  const selectedCats = parseCategoryList(productCategory);
+  if (selectedCats.length > 0 && selectedCats.length < 3) {
+    if (selectedCats.length === 1) {
+      const cat = selectedCats[0];
+      if (cat === 'TL') {
+        q = q.in('mat_cat', ALLOWED_MAT_CAT).or('model.ilike.TL%,mat_cat.eq.TL');
+      } else if (cat === 'MW') {
+        q = q.in('mat_cat', ['MW', 'MWO', 'MICROWAVE']).or('mat_cat.eq.MW,mat_cat.eq.MWO,mat_cat.eq.MICROWAVE,model.ilike.MW%');
+      } else if (cat === 'FL') {
+        q = q.in('mat_cat', ['WM', 'WD']).not('model', 'ilike', 'TL%').not('model', 'ilike', 'MW%');
+      }
+    } else if (selectedCats.length === 2) {
+      if (selectedCats.includes('TL') && selectedCats.includes('FL')) {
+        q = q.in('mat_cat', ['WM', 'WD', 'TL']).not('model', 'ilike', 'MW%');
+      } else if (selectedCats.includes('TL') && selectedCats.includes('MW')) {
+        q = q.in('mat_cat', ALLOWED_MAT_CAT).or('model.ilike.TL%,mat_cat.eq.TL,model.ilike.MW%,mat_cat.eq.MW,mat_cat.eq.MWO,mat_cat.eq.MICROWAVE');
+      } else if (selectedCats.includes('FL') && selectedCats.includes('MW')) {
+        q = q.in('mat_cat', ['WM', 'WD', 'MW', 'MWO', 'MICROWAVE']).not('model', 'ilike', 'TL%');
+      }
     }
   } else {
     q = q.in('mat_cat', ALLOWED_MAT_CAT);
@@ -182,15 +216,26 @@ async function getSummaryCounts({ typeOfDamage = '', productCategory = '', date 
         else if (days > 1460) bKey = 'bucket_more_than_4_years';
 
         if (bKey) {
-          counts[bKey]++;
           if (isTl) {
+            counts[bKey]++;
             counts[`${bKey}_tl`]++;
             if (isFunc) counts[`${bKey}_tl_func`]++;
             if (isTrans) counts[`${bKey}_tl_trans`]++;
-          } else {
+          } else if (isFl) {
+            counts[bKey]++;
             counts[`${bKey}_fl`]++;
             if (isFunc) counts[`${bKey}_fl_func`]++;
             if (isTrans) counts[`${bKey}_fl_trans`]++;
+          } else if (isMw) {
+            const isExcludeMw = productCategory && (
+              productCategory.toUpperCase() === 'TL_FL' ||
+              productCategory.toUpperCase() === 'TL,FL' ||
+              productCategory.toUpperCase() === 'NO_MW' ||
+              productCategory.toUpperCase() === 'EXCLUDE_MW'
+            );
+            if (!isExcludeMw) {
+              counts[bKey]++;
+            }
           }
         }
       });
@@ -494,17 +539,22 @@ async function updateActionPlan(serialNumber, { actionDone, responsiblePerson, i
 /**
  * Returns the latest date in product_replacement table as YYYY-MM-DD string.
  */
-async function getLatestDate() {
+async function getLatestDate({ productCategory = '' } = {}) {
   if (supabase) {
     try {
-      const { data: rows, error } = await supabase
+      let q = supabase
         .from('product_replacement')
         .select('zmac_date, doc')
         .in('fd_zbrn_status', ALLOWED_STATUS)
-        .in('mat_cat', ALLOWED_MAT_CAT)
-        .in('machine_status', ALLOWED_MACHINE_STATUS)
-        .order('zmac_date', { ascending: false })
-        .limit(5);
+        .in('machine_status', ALLOWED_MACHINE_STATUS);
+
+      if (productCategory && (productCategory.toUpperCase() === 'TL_FL' || productCategory.toUpperCase() === 'TL,FL' || productCategory.toUpperCase() === 'NO_MW' || productCategory.toUpperCase() === 'EXCLUDE_MW')) {
+        q = q.in('mat_cat', ['WM', 'WD', 'TL']).not('model', 'ilike', 'MW%');
+      } else {
+        q = q.in('mat_cat', ALLOWED_MAT_CAT);
+      }
+
+      const { data: rows, error } = await q.order('zmac_date', { ascending: false }).limit(5);
 
       if (!error && rows && rows.length > 0) {
         for (const r of rows) {
@@ -522,14 +572,15 @@ async function getLatestDate() {
 
   if (pool) {
     try {
+      const { whereClause, params } = buildWhereClause({ productCategory });
       const [rows] = await pool.query(
         `SELECT DATE(COALESCE(zmac_date, doc)) AS latest_date
          FROM product_replacement
-         WHERE ${BASE_WHERE}
+         WHERE ${whereClause}
            AND (zmac_date IS NOT NULL OR doc IS NOT NULL)
          ORDER BY COALESCE(zmac_date, doc) DESC
          LIMIT 1`,
-        BASE_PARAMS
+        params
       );
       if (rows && rows[0] && rows[0].latest_date) {
         const d = new Date(rows[0].latest_date);
