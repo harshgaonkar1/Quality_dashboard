@@ -30,15 +30,16 @@ function FLPartGroupingChart({ partGroups = [], flTotal = 0, activeDate = '', is
   const tooltipBg = isAdmin ? '#050505' : isDark ? '#0F172A' : '#FFFFFF';
   const tooltipBorder = isAdmin ? '#22c55e' : isDark ? '#334155' : '#CBD5E1';
 
-  // Ageing series colors (Sky/Cyan/Blue hues for FL)
+  // Ageing series colors:
+  // 0day = Bright Orange, 0-3M = Light Mint Green, 1Y = Bright Electric Red, 2Y = Bright Cyan Blue, 3Y = Bright Sunshine Yellow, 4Y = Bright Electric Violet, >4Y = Bright Royal Indigo
   const AGEING_COLORS = {
-    installFailure: isAdmin ? '#86efac' : '#0284C7',
-    months0_3: isAdmin ? '#4ade80' : '#0EA5E9',
-    year1: isAdmin ? '#22c55e' : '#38BDF8',
-    year2: isAdmin ? '#16a34a' : '#60A5FA',
-    year3: isAdmin ? '#15803d' : '#3B82F6',
-    year4: isAdmin ? '#166534' : '#2563EB',
-    moreThan4: isAdmin ? '#14532d' : '#1D4ED8',
+    installFailure: isAdmin ? '#FFA040' : '#FF7A00', // Bright Radiant Orange
+    months0_3: isAdmin ? '#86EFAC' : '#4ADE80',      // Light Mint Green
+    year1: isAdmin ? '#FF6B7D' : '#FF334B',          // Bright Electric Red
+    year2: isAdmin ? '#40C8FF' : '#00B4FF',          // Bright Electric Sky Blue
+    year3: isAdmin ? '#FFF04D' : '#FFDE00',          // Bright Sunshine Yellow
+    year4: isAdmin ? '#D166FF' : '#B845FF',          // Bright Electric Violet / Purple
+    moreThan4: isAdmin ? '#807DFF' : '#4F46E5',      // Bright Royal Indigo
   };
 
   const categories = useMemo(() => allGroups.map((g) => g.partName), [allGroups]);
@@ -265,15 +266,15 @@ function FLPartGroupingChart({ partGroups = [], flTotal = 0, activeDate = '', is
             Ageing Breakdown:
           </span>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-400/30">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.installFailure }} />
               0d: <strong className="font-mono">{ageingTotals.installFailure}</strong>
             </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.months0_3 }} />
               0-3M: <strong className="font-mono">{ageingTotals.months0_3}</strong>
             </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-red-500/10 text-red-700 dark:text-red-300 border border-red-400/30">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year1 }} />
               1Y: <strong className="font-mono">{ageingTotals.year1}</strong>
             </span>
@@ -281,15 +282,15 @@ function FLPartGroupingChart({ partGroups = [], flTotal = 0, activeDate = '', is
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year2 }} />
               2Y: <strong className="font-mono">{ageingTotals.year2}</strong>
             </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/30">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year3 }} />
               3Y: <strong className="font-mono">{ageingTotals.year3}</strong>
             </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-400/30">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year4 }} />
               4Y: <strong className="font-mono">{ageingTotals.year4}</strong>
             </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-400/30">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.moreThan4 }} />
               &gt;4Y: <strong className="font-mono">{ageingTotals.moreThan4}</strong>
             </span>

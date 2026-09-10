@@ -28,15 +28,15 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
   const tooltipBg = isAdmin ? '#050505' : isDark ? '#0F172A' : '#FFFFFF';
   const tooltipBorder = isAdmin ? '#22c55e' : isDark ? '#334155' : '#CBD5E1';
 
-  // Palette tailored for TL (Rose / Red / Crimson)
+  // Palette matching the bright vivid scheme: 0d Bright Orange, 0-3M Bright Green, 1Y Bright Red, 2Y Bright Blue, 3Y Bright Yellow, 4Y Bright Purple, >4Y Bright Indigo
   const tlBarColors = [
-    isAdmin ? '#86efac' : '#E11D48', // Install Failure
-    isAdmin ? '#4ade80' : '#F43F5E', // 0-3 Months
-    isAdmin ? '#22c55e' : '#FB7185', // 1 Year
-    isAdmin ? '#16a34a' : '#FDA4AF', // 2 Year
-    isAdmin ? '#15803d' : '#BE123C', // 3 Year
-    isAdmin ? '#166534' : '#9F1239', // 4 Year
-    isAdmin ? '#14532d' : '#881337', // > 4 Years
+    isAdmin ? '#FFA040' : '#FF7A00', // Install Failure (0d) - Bright Orange
+    isAdmin ? '#33FFA0' : '#00E676', // 0-3 Months - Bright Neon Emerald Green
+    isAdmin ? '#FF6B7D' : '#FF334B', // 1 Year - Bright Electric Red
+    isAdmin ? '#40C8FF' : '#00B4FF', // 2 Year - Bright Electric Sky Blue
+    isAdmin ? '#FFF04D' : '#FFDE00', // 3 Year - Bright Sunshine Yellow
+    isAdmin ? '#D166FF' : '#B845FF', // 4 Year - Bright Electric Violet
+    isAdmin ? '#807DFF' : '#4F46E5', // > 4 Years - Bright Royal Indigo
   ];
 
   const categories = (cards || []).map((c) => c.label);

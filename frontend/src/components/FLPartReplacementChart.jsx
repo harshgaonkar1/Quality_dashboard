@@ -25,15 +25,15 @@ export default function FLPartReplacementChart({ cards = [], total = 0, flCount 
   const tooltipBg = isAdmin ? '#050505' : isDark ? '#0F172A' : '#FFFFFF';
   const tooltipBorder = isAdmin ? '#22c55e' : isDark ? '#334155' : '#CBD5E1';
 
-  // Palette tailored for FL (Cyan / Blue / Sky)
+  // Palette matching the bright vivid scheme: 0d Bright Orange, 0-3M Bright Green, 1Y Bright Red, 2Y Bright Blue, 3Y Bright Yellow, 4Y Bright Purple, >4Y Bright Indigo
   const flBarColors = [
-    isAdmin ? '#4ade80' : '#0284C7', // Install Failure
-    isAdmin ? '#22c55e' : '#0EA5E9', // 0-3 Months
-    isAdmin ? '#16a34a' : '#38BDF8', // 1 Year
-    isAdmin ? '#15803d' : '#60A5FA', // 2 Year
-    isAdmin ? '#166534' : '#3B82F6', // 3 Year
-    isAdmin ? '#14532d' : '#2563EB', // 4 Year
-    isAdmin ? '#052e16' : '#1D4ED8', // > 4 Years
+    isAdmin ? '#FFA040' : '#FF7A00', // Install Failure (0d) - Bright Orange
+    isAdmin ? '#33FFA0' : '#00E676', // 0-3 Months - Bright Neon Emerald Green
+    isAdmin ? '#FF6B7D' : '#FF334B', // 1 Year - Bright Electric Red
+    isAdmin ? '#40C8FF' : '#00B4FF', // 2 Year - Bright Electric Sky Blue
+    isAdmin ? '#FFF04D' : '#FFDE00', // 3 Year - Bright Sunshine Yellow
+    isAdmin ? '#D166FF' : '#B845FF', // 4 Year - Bright Electric Violet
+    isAdmin ? '#807DFF' : '#4F46E5', // > 4 Years - Bright Royal Indigo
   ];
 
   const categories = (cards || []).map((c) => c.label);
