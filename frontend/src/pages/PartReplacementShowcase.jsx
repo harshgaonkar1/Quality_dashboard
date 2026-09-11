@@ -319,25 +319,25 @@ export default function PartReplacementShowcase() {
     <div
       ref={containerRef}
       className={`max-w-[1720px] w-full mx-auto flex flex-col justify-between ${isFullscreen
-        ? 'fixed inset-0 z-50 p-2.5 lg:p-3.5 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden box-border space-y-1.5'
-        : 'w-full h-full space-y-2'
+        ? 'fixed inset-0 z-50 p-2 lg:p-2.5 bg-mist-100 dark:bg-ink-950 h-screen w-screen overflow-hidden box-border gap-1'
+        : 'w-full h-full gap-1.5'
         }`}
     >
       {/* Header + Filter controls combined into compact single-frame top section */}
-      <div className="space-y-1.5 shrink-0">
+      <div className="shrink-0">
         {/* Top Controls Header */}
         <div
-          className={`p-2.5 lg:p-3 rounded-xl border transition-all ${isAdmin
+          className={`px-3 py-1.5 lg:px-3.5 lg:py-2 rounded-xl border transition-all ${isAdmin
             ? 'bg-neutral-950 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
             : 'bg-white dark:bg-ink-900 border-mist-300 dark:border-ink-800 shadow-xs'
             }`}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="px-2 py-0.5 rounded-full text-[10px] lg:text-xs font-black bg-signal/20 text-signal-dark dark:text-signal border border-signal/40 uppercase tracking-widest animate-pulse">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] lg:text-[10px] font-black bg-signal/20 text-signal-dark dark:text-signal border border-signal/40 uppercase tracking-widest animate-pulse">
                 Showcase Mode
               </span>
-              <h2 className="font-display text-base lg:text-xl font-extrabold text-ink-950 dark:text-white tracking-tight">
+              <h2 className="font-display text-sm lg:text-base font-extrabold text-ink-950 dark:text-white tracking-tight">
                 Part Replacement — FQC
               </h2>
             </div>
@@ -347,11 +347,11 @@ export default function PartReplacementShowcase() {
               <button
                 tabIndex={0}
                 onClick={() => setIsMenuOpen((prev) => !prev)}
-                className="p-1.5 lg:p-2 rounded-xl border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-950 dark:text-white hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                className="p-1 lg:p-1.5 rounded-lg border border-mist-300 dark:border-ink-700 bg-mist-100 dark:bg-ink-800 text-ink-950 dark:text-white hover:bg-mist-200 dark:hover:bg-ink-700 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-xs"
                 title="Menu Controls"
                 aria-label="Toggle Navigation Menu"
               >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   {isMenuOpen ? (
                     <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                   ) : (
@@ -362,7 +362,7 @@ export default function PartReplacementShowcase() {
 
               {/* Dropdown Popover */}
               {isMenuOpen && (
-                <div className="absolute right-0 top-11 z-50 w-60 p-2.5 rounded-2xl bg-white dark:bg-ink-900 border border-mist-300 dark:border-ink-700 shadow-2xl space-y-2 font-sans">
+                <div className="absolute right-0 top-9 z-50 w-60 p-2.5 rounded-2xl bg-white dark:bg-ink-900 border border-mist-300 dark:border-ink-700 shadow-2xl space-y-2 font-sans">
                   <div className="text-[10px] font-extrabold text-ink-400 dark:text-mist-400 uppercase tracking-wider px-1">
                     View Mode
                   </div>
@@ -454,10 +454,10 @@ export default function PartReplacementShowcase() {
           </div>
 
           {/* Animated Timer Countdown Bar */}
-          <div className="mt-1.5 pt-1 border-t border-mist-200 dark:border-ink-800/60">
-            <div className="flex items-center justify-between text-xs font-bold text-ink-500 dark:text-mist-400 mb-0.5">
+          <div className="mt-1 pt-0.5 border-t border-mist-200 dark:border-ink-800/60">
+            <div className="flex items-center justify-between text-[11px] font-bold text-ink-500 dark:text-mist-400 mb-0.5">
               <span className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${autoPlay ? 'bg-green-500 animate-ping' : 'bg-amber-500'}`} />
                 Current View:{' '}
                 <strong className="text-ink-950 dark:text-white uppercase font-black">
                   {activeSlide === 'fl'
@@ -467,7 +467,7 @@ export default function PartReplacementShowcase() {
                     : 'Data Table'}
                 </strong>
               </span>
-              <span className="text-[10px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-2 py-0.5 rounded border border-signal/30">
+              <span className="text-[9px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-1.5 py-0.2 rounded border border-signal/30">
                 {date === 'latest'
                   ? `Date: ${formatDate(groupingData?.activeDate || groupingData?.latestDate)}`
                   : `Date: ${formatDate(date)}`}
@@ -477,7 +477,7 @@ export default function PartReplacementShowcase() {
               </span>
             </div>
 
-            <div className="w-full h-1.5 rounded-full overflow-hidden bg-mist-200 dark:bg-ink-800">
+            <div className="w-full h-1 rounded-full overflow-hidden bg-mist-200 dark:bg-ink-800">
               <div
                 className={`h-full transition-all duration-1000 ease-linear ${autoPlay ? 'bg-signal' : 'bg-amber-500'}`}
                 style={{ width: `${autoPlay ? progressPercent : 100}%` }}
@@ -488,13 +488,13 @@ export default function PartReplacementShowcase() {
       </div>
 
       {/* Main Slide Area: All 3 kept mounted in DOM to PREVENT re-animation on slide switch */}
-      <div className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-auto">
+      <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
         {/* Slide 1: FL Part Grouping Chart (Always mounted, hidden when activeSlide !== 'fl') */}
-        <div className={activeSlide === 'fl' ? 'block h-full flex flex-col justify-between overflow-hidden' : 'hidden'}>
+        <div className={activeSlide === 'fl' ? 'flex flex-col h-full min-h-0 w-full overflow-hidden' : 'hidden'}>
           {groupingLoading && !groupingData && <LoadingSpinner label="Loading FL part grouping analytics…" />}
           {groupingError && <ErrorBanner message={groupingError} onRetry={refetchGrouping} />}
           {groupingData && (
-            <div className="h-full min-h-0">
+            <div className="h-full w-full min-h-0 flex-1 flex flex-col">
               <FLPartGroupingChart
                 partGroups={flPartGroups}
                 flTotal={flTotal}
@@ -506,11 +506,11 @@ export default function PartReplacementShowcase() {
         </div>
 
         {/* Slide 2: TL Part Grouping Chart (Always mounted, hidden when activeSlide !== 'tl') */}
-        <div className={activeSlide === 'tl' ? 'block h-full flex flex-col justify-between overflow-hidden' : 'hidden'}>
+        <div className={activeSlide === 'tl' ? 'flex flex-col h-full min-h-0 w-full overflow-hidden' : 'hidden'}>
           {groupingLoading && !groupingData && <LoadingSpinner label="Loading TL part grouping analytics…" />}
           {groupingError && <ErrorBanner message={groupingError} onRetry={refetchGrouping} />}
           {groupingData && (
-            <div className="h-full min-h-0">
+            <div className="h-full w-full min-h-0 flex-1 flex flex-col">
               <TLPartGroupingChart
                 partGroups={tlPartGroups}
                 tlTotal={tlTotal}
@@ -522,7 +522,7 @@ export default function PartReplacementShowcase() {
         </div>
 
         {/* Slide 3: Data Table (Always mounted, hidden when activeSlide !== 'table') */}
-        <div className={activeSlide === 'table' ? 'block h-full flex flex-col justify-between overflow-hidden space-y-1.5' : 'hidden'}>
+        <div className={activeSlide === 'table' ? 'flex flex-col h-full min-h-0 w-full overflow-hidden space-y-1' : 'hidden'}>
           <div className="flex items-center justify-between shrink-0">
             <h3 className="text-xs lg:text-sm font-bold text-ink-950 dark:text-white flex items-center gap-1.5">
               <span>📋</span> Part Replacement Functional Defects Table

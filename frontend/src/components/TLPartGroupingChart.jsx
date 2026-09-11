@@ -6,7 +6,7 @@
 // Engineered for presentation / TV Showcase mode.
 // ============================================================
 
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
@@ -17,6 +17,8 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
   const { isAdmin } = useAdmin();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const chartComponentRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Display all part groups so bar graph counts match total replacements
   const allGroups = useMemo(() => partGroups || [], [partGroups]);
@@ -89,8 +91,12 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
       backgroundColor: 'transparent',
       animation: false,
       style: { fontFamily: isAdmin ? '"JetBrains Mono", monospace' : 'Inter, system-ui, sans-serif' },
-      height: isCompact ? 350 : 390,
-      spacingBottom: 15,
+      height: null,
+      spacingTop: 6,
+      spacingBottom: 24,
+      spacingLeft: 8,
+      spacingRight: 8,
+      reflow: true,
     },
     title: { text: null },
     credits: { enabled: false },
@@ -98,33 +104,41 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
       categories: categories.length > 0 ? categories : ['No Parts Data'],
       lineColor,
       labels: {
-        rotation: -45,
+        rotation: categories.length > 6 ? -50 : -25,
         align: 'right',
         step: 1,
         reserveSpace: true,
+        y: 4,
+        x: -2,
         style: {
           color: textColor,
-          fontSize: categories.length > 18 ? '9px' : categories.length > 12 ? '10px' : '11px',
-          fontWeight: '700',
-          textOverflow: 'none',
+          fontSize: categories.length > 20 ? '9px' : categories.length > 12 ? '10px' : '11px',
+          fontWeight: '600',
+          textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
         },
         formatter: function () {
-          return this.value;
+          const val = String(this.value || '');
+          const maxLen = categories.length > 15 ? 18 : 22;
+          if (val.length > maxLen) {
+            return val.slice(0, maxLen - 1) + '…';
+          }
+          return val;
         },
       },
     },
     yAxis: {
       title: { text: null },
       gridLineColor: gridColor,
-      labels: { style: { color: subTextColor, fontSize: '11px' } },
+      labels: { style: { color: subTextColor, fontSize: '10px', fontWeight: '600' } },
       allowDecimals: false,
+      min: 0,
       stackLabels: {
         enabled: true,
         style: {
           fontWeight: 'bold',
           color: textColor,
-          fontSize: '11px',
+          fontSize: '10px',
           textOutline: 'none',
         },
         formatter: function () {
@@ -181,12 +195,38 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
         stacking: 'normal',
         animation: false,
         borderRadius: 4,
-        pointPadding: 0.1,
-        groupPadding: 0.05,
+        pointPadding: categories.length > 15 ? 0.05 : 0.1,
+        groupPadding: categories.length > 15 ? 0.02 : 0.05,
+        maxPointWidth: 55,
       },
     },
     series: stackedSeries,
-  }), [categories, isCompact, isAdmin, lineColor, gridColor, textColor, subTextColor, tooltipBg, tooltipBorder, tlTotal, stackedSeries]);
+  }), [categories, isAdmin, lineColor, gridColor, textColor, subTextColor, tooltipBg, tooltipBorder, tlTotal, stackedSeries]);
+
+  // Ensure responsive reflow on resize and data updates
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const handleReflow = () => {
+      if (chartComponentRef.current?.chart) {
+        chartComponentRef.current.chart.reflow();
+      }
+    };
+
+    handleReflow();
+    const t1 = setTimeout(handleReflow, 60);
+    const t2 = setTimeout(handleReflow, 250);
+
+    const observer = new ResizeObserver(() => {
+      handleReflow();
+    });
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [allGroups, isZero]);
 
   const ageingTotals = useMemo(() => {
     const totals = {
@@ -215,99 +255,91 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
   const topPart = allGroups[0] || null;
 
   return (
-    <div className="panel p-3 lg:p-4 flex flex-col justify-between border-t-4 border-t-rose-500 shadow-panel h-full relative overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 font-bold text-xs">
-            TL
-          </div>
-          <div>
-            <h3 className="font-display text-xs lg:text-sm font-bold text-ink-950 dark:text-mist-100 flex items-center gap-2">
+    <div className="panel p-2 lg:p-2.5 flex flex-col h-full w-full min-h-0 border-t-4 border-t-rose-500 shadow-panel relative">
+      {/* Sleek Integrated Header & KPI Bar */}
+      <div className="flex flex-col gap-1 shrink-0 mb-1">
+        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+          {/* Title & Badge */}
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 font-bold text-[11px]">
+              TL
+            </div>
+            <h3 className="font-display text-xs lg:text-sm font-bold text-ink-950 dark:text-mist-100 flex items-center gap-1">
               TL Part Replacement
             </h3>
           </div>
-        </div>
-      </div>
 
-      {/* Mini KPI summary */}
-      <div className="grid grid-cols-3 gap-2 mb-2">
-        <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg p-2 text-center">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block">
-            Total TL Replacements
-          </span>
-          <span className="font-display text-base font-extrabold text-rose-900 dark:text-rose-200">
-            {tlTotal.toLocaleString()}
-          </span>
-        </div>
-        <div className="bg-mist-50 dark:bg-ink-800/40 border border-mist-200 dark:border-ink-700/60 rounded-lg p-2 text-center">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-ink-600 dark:text-mist-400 block">
-            Distinct Part Groups
-          </span>
-          <span className="font-display text-base font-extrabold text-ink-900 dark:text-mist-100">
-            {partGroups.length}
-          </span>
-        </div>
-        <div className="bg-mist-50 dark:bg-ink-800/40 border border-mist-200 dark:border-ink-700/60 rounded-lg p-2 text-center">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-ink-600 dark:text-mist-400 block">
-            Top Replaced Part
-          </span>
-          <span className="font-display text-xs font-bold text-ink-900 dark:text-mist-100 truncate block" title={topPart?.partName}>
-            {topPart ? `${topPart.partName} (${topPart.count})` : 'N/A'}
-          </span>
-        </div>
-      </div>
-
-      {/* Ageing Breakdown Summary at Top of Graph */}
-      {!isZero && (
-        <div className="flex flex-wrap items-center justify-between gap-1 px-2.5 py-1 rounded-lg bg-mist-100/70 dark:bg-ink-900/60 border border-mist-200 dark:border-ink-800 mb-2 text-[10px]">
-          <span className="font-extrabold text-ink-600 dark:text-mist-400 uppercase tracking-wider text-[9px]">
-            Ageing Breakdown:
-          </span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.installFailure }} />
-              0d: <strong className="font-mono">{ageingTotals.installFailure}</strong>
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.months0_3 }} />
-              0-3M: <strong className="font-mono">{ageingTotals.months0_3}</strong>
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-red-500/10 text-red-700 dark:text-red-300 border border-red-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year1 }} />
-              1Y: <strong className="font-mono">{ageingTotals.year1}</strong>
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year2 }} />
-              2Y: <strong className="font-mono">{ageingTotals.year2}</strong>
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year3 }} />
-              3Y: <strong className="font-mono">{ageingTotals.year3}</strong>
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year4 }} />
-              4Y: <strong className="font-mono">{ageingTotals.year4}</strong>
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-400/30">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.moreThan4 }} />
-              &gt;4Y: <strong className="font-mono">{ageingTotals.moreThan4}</strong>
-            </span>
+          {/* Inline KPI Metric Badges */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-[11px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">Total:</span>
+              <strong className="font-display font-black text-rose-950 dark:text-rose-200">{tlTotal.toLocaleString()}</strong>
+            </div>
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-mist-100 dark:bg-ink-800/60 border border-mist-200 dark:border-ink-700/60 text-[11px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ink-600 dark:text-mist-400">Groups:</span>
+              <strong className="font-display font-black text-ink-950 dark:text-mist-100">{partGroups.length}</strong>
+            </div>
+            {topPart && (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-mist-100 dark:bg-ink-800/60 border border-mist-200 dark:border-ink-700/60 text-[11px] max-w-[220px] truncate" title={`${topPart.partName} (${topPart.count})`}>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-ink-600 dark:text-mist-400 shrink-0">Top:</span>
+                <span className="font-bold text-ink-900 dark:text-mist-100 truncate">{topPart.partName}</span>
+                <span className="px-1 py-0.1 rounded font-mono font-bold bg-mist-200 dark:bg-ink-700 text-[9px] shrink-0">{topPart.count}</span>
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Ageing Breakdown Pills Legend */}
+        {!isZero && (
+          <div className="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded-md bg-mist-100/60 dark:bg-ink-900/60 border border-mist-200/80 dark:border-ink-800 text-[9px] overflow-x-auto">
+            <span className="font-bold text-ink-500 dark:text-mist-400 uppercase tracking-wider text-[8px] shrink-0">
+              Ageing:
+            </span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.installFailure }} />
+                0d: <strong className="font-mono">{ageingTotals.installFailure}</strong>
+              </span>
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.months0_3 }} />
+                0-3M: <strong className="font-mono">{ageingTotals.months0_3}</strong>
+              </span>
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-red-500/10 text-red-700 dark:text-red-300 border border-red-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year1 }} />
+                1Y: <strong className="font-mono">{ageingTotals.year1}</strong>
+              </span>
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year2 }} />
+                2Y: <strong className="font-mono">{ageingTotals.year2}</strong>
+              </span>
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year3 }} />
+                3Y: <strong className="font-mono">{ageingTotals.year3}</strong>
+              </span>
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year4 }} />
+                4Y: <strong className="font-mono">{ageingTotals.year4}</strong>
+              </span>
+              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-400/30">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.moreThan4 }} />
+                &gt;4Y: <strong className="font-mono">{ageingTotals.moreThan4}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Content Canvas / Zero State */}
-      <div className="flex-1 min-h-[250px] overflow-auto">
+      <div ref={containerRef} className="flex-1 min-h-0 w-full relative">
         {isZero ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-mist-50/60 dark:bg-ink-950/40 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/60">
-            <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-2">
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-mist-50/60 dark:bg-ink-950/40 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/60">
+            <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-1.5 text-base">
               ⚙️
             </div>
             <h4 className="font-display text-xs font-bold text-ink-900 dark:text-mist-100">
               Awaiting TL Dataset Upload
             </h4>
-            <p className="text-[11px] text-ink-500 dark:text-mist-400 max-w-xs mt-1 mb-2.5">
+            <p className="text-[11px] text-ink-500 dark:text-mist-400 max-w-xs mt-0.5 mb-2">
               Currently, only FL part data is uploaded in the database for this date.
             </p>
             <button
@@ -318,7 +350,17 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
             </button>
           </div>
         ) : (
-          <HighchartsReact highcharts={Highcharts} options={stackedOptions} />
+          <div className="w-full h-full absolute inset-0">
+            <HighchartsReact
+              ref={chartComponentRef}
+              highcharts={Highcharts}
+              options={stackedOptions}
+              containerProps={{
+                style: { width: '100%', height: '100%', position: 'absolute', inset: 0 },
+                className: 'w-full h-full'
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

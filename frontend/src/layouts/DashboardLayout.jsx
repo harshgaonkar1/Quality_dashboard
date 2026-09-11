@@ -133,10 +133,14 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className={`flex-1 overflow-y-auto ${location.pathname === '/' || location.pathname === '/product-replacement/showcase'
-          ? 'p-2.5 lg:p-3.5 h-full flex flex-col justify-between'
-          : 'p-4 lg:p-6 xl:p-8'
-          }`}>
+        <main className={`flex-1 overflow-y-auto ${
+          location.pathname === '/' ||
+          location.pathname === '/product-replacement/showcase' ||
+          location.pathname === '/part-replacement/showcase' ||
+          location.pathname === '/part-showcase'
+            ? 'p-2 lg:p-2.5 h-full flex flex-col justify-between overflow-hidden'
+            : 'p-4 lg:p-6 xl:p-8'
+        }`}>
           <Outlet />
         </main>
       </div>
