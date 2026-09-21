@@ -71,20 +71,49 @@ const REQUIRED_COLUMN_GROUPS = [
 
 
 /**
- * Helper to get a field value from a row object using multiple header aliases.
+ * Converts a 1-based column index to an Excel column letter (e.g., 1 -> 'A', 27 -> 'AA').
  */
-function getFieldValue(row, aliases) {
-  if (!row) return null;
+function indexToColumnLetter(colIndex) {
+  let letter = '';
+  let temp = colIndex;
+  while (temp > 0) {
+    const rem = (temp - 1) % 26;
+    letter = String.fromCharCode(65 + rem) + letter;
+    temp = Math.floor((temp - 1) / 26);
+  }
+  return letter;
+}
+
+/**
+ * Helper to get a field value and its cell metadata (address, col letter, matched header).
+ */
+function getFieldMeta(row, aliases) {
+  if (!row) return { value: null, matchedKey: null, cellAddress: null, colLetter: null };
   const keys = Object.keys(row);
   for (const alias of aliases) {
     const normalizedAlias = alias.trim().toLowerCase();
     const foundKey = keys.find((k) => k.trim().toLowerCase() === normalizedAlias);
     if (foundKey && row[foundKey] !== undefined && row[foundKey] !== null) {
       const val = String(row[foundKey]).trim();
-      if (val !== '') return val;
+      const cellAddress = row._cellMap ? row._cellMap[foundKey] : null;
+      const colLetter = row._colLetters ? row._colLetters[foundKey] : null;
+      return {
+        value: val !== '' ? val : null,
+        rawValue: row[foundKey],
+        matchedKey: foundKey,
+        cellAddress,
+        colLetter,
+      };
     }
   }
-  return null;
+  return { value: null, matchedKey: null, cellAddress: null, colLetter: null };
+}
+
+/**
+ * Helper to get a field value from a row object using multiple header aliases.
+ */
+function getFieldValue(row, aliases) {
+  return getFieldMeta(row, aliases).value;
 }
 
 /**
@@ -102,4 +131,12 @@ function validateRow(row) {
   return { valid: true, reason: null };
 }
 
-module.exports = { REQUIRED_COLUMN_GROUPS, validateHeaders, validateRow, getFieldValue };
+module.exports = {
+  REQUIRED_COLUMN_GROUPS,
+  indexToColumnLetter,
+  getFieldMeta,
+  getFieldValue,
+  validateHeaders,
+  validateRow,
+};
+

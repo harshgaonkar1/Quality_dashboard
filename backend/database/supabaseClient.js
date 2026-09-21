@@ -14,8 +14,13 @@ const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBL
 let supabase = null;
 
 if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
-  console.log('✅ Supabase JS client initialized');
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ Supabase JS client initialized');
+  } catch (err) {
+    console.warn('⚠️ Supabase JS client initialization notice:', err.message);
+    supabase = null;
+  }
 } else {
   console.log('ℹ️ Supabase JS client not initialized (SUPABASE_URL or Key missing in .env)');
 }

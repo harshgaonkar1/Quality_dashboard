@@ -1,11 +1,8 @@
 // ============================================================
 // Date Formatting Utility
 // ------------------------------------------------------------
-// Formats 'YYYY-MM-DD' or 'YYYY-DD-MM' date strings into a readable
-// 'DD MMM YYYY' display format (e.g. '01 Jan 2024').
+// Formats date strings into 'MM-DD-YYYY' display format (e.g. '08-15-2024').
 // ============================================================
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function formatDate(dateStr, isYyyyDdMm = false) {
   if (!dateStr) return '—';
@@ -28,16 +25,29 @@ export function formatDate(dateStr, isYyyyDdMm = false) {
       day = parts[2];
     }
   } else if (parts[2].length === 4) {
-    // DD/MM/YYYY
+    // DD-MM-YYYY or MM-DD-YYYY
+    const p1 = parseInt(parts[0], 10);
+    const p2 = parseInt(parts[1], 10);
     year = parts[2];
-    day = parts[0];
-    month = parts[1];
+
+    // In DD-MM-YYYY inputs (e.g. 10-09-2026 -> 10th September 2026)
+    if (p2 >= 1 && p2 <= 12 && p1 >= 1 && p1 <= 31) {
+      day = parts[0];
+      month = parts[1];
+    } else if (p1 >= 1 && p1 <= 12 && p2 > 12) {
+      // MM-DD-YYYY inputs (e.g. 09-25-2026 -> 25th September 2026)
+      month = parts[0];
+      day = parts[1];
+    } else {
+      month = parts[1];
+      day = parts[0];
+    }
   } else {
     return dateStr;
   }
 
-  const mIdx = parseInt(month, 10) - 1;
-  const monthLabel = MONTHS[mIdx] || month;
-  return `${String(parseInt(day, 10)).padStart(2, '0')} ${monthLabel} ${year}`;
+  const mm = String(parseInt(month, 10)).padStart(2, '0');
+  const dd = String(parseInt(day, 10)).padStart(2, '0');
+  return `${mm}-${dd}-${year}`;
 }
 

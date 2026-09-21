@@ -43,8 +43,13 @@ app.use(errorHandler);
 
 // ---- Start Server ----
 (async () => {
-  await testConnection();
-  app.listen(PORT, () => {
+  try {
+    await testConnection();
+  } catch (err) {
+    console.warn('ℹ️ Database connection notice on startup:', err.message);
+  }
+
+  const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     // Non-blocking QA lookup initialization
     try {
@@ -58,8 +63,14 @@ app.use(errorHandler);
         .catch(() => { });
     } catch (e) { }
   });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} is already in use by another running process. Please kill the existing process or change PORT in .env.`);
+    } else {
+      console.error('❌ Server startup error:', err.message);
+    }
+  });
 })();
 
-
 module.exports = app;
-// Server refreshed

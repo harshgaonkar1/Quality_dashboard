@@ -36,8 +36,8 @@ export default function PartReplacementShowcase() {
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Filters state (defaults to 'latest')
-  const [productCategory, setProductCategory] = useState('');
+  // Filters state (defaults to 'latest' to display latest date data for that day only, productCategory defaults to 'TL_FL' so MW is excluded)
+  const [productCategory, setProductCategory] = useState('TL_FL');
   const [date, setDate] = useState('latest');
 
   // Table state: Window-based pagination (1-10, 11-20, 21-30...)
@@ -91,7 +91,7 @@ export default function PartReplacementShowcase() {
 
   // 1. Fetch Summary Data (for FL & TL Part Grouping Graphs)
   const groupingFetchFn = useCallback(
-    () => fetchPartGroupingSummary({ productCategory, date }),
+    () => fetchPartGroupingSummary({ productCategory: productCategory || 'TL_FL', date }),
     [productCategory, date]
   );
   const {
@@ -107,13 +107,13 @@ export default function PartReplacementShowcase() {
   const tlPartGroups = useMemo(() => groupingData?.tlPartGroups || [], [groupingData?.tlPartGroups]);
   const flTotal = groupingData?.flTotal || 0;
   const tlTotal = groupingData?.tlTotal || 0;
-  const activeDate = groupingData?.activeDate || (date !== 'latest' ? date : '');
+  const activeDate = groupingData?.activeDate || groupingData?.latestDate || (date !== 'latest' ? date : '');
 
-  // 2. Fetch Details Data (for Data Table)
+  // 2. Fetch Details Data (for Data Table - TL & FL)
   const detailsFetchFn = useCallback(
     () =>
       fetchDashboardDetails({
-        productCategory: productCategory || undefined,
+        productCategory: productCategory || 'TL_FL',
         date: date || undefined,
         page: 1,
         pageSize: FETCH_SIZE,
@@ -137,6 +137,7 @@ export default function PartReplacementShowcase() {
       const model = (row.model || '').toUpperCase();
       const subCat = (row.sub_category || '').toUpperCase();
       const matCat = (row.mat_cat || '').toUpperCase();
+
       return (
         !model.startsWith('MW') &&
         subCat !== 'MW' &&
@@ -289,7 +290,7 @@ export default function PartReplacementShowcase() {
     },
   });
 
-  // Table columns configuration matching ProductReplacementShowcase format
+  // Table columns configuration without Date and Remarks
   const columns = [
     { key: 'branch', label: 'Branch', sortable: true },
     { key: 'model', label: 'Machine Model', sortable: true },
@@ -300,7 +301,6 @@ export default function PartReplacementShowcase() {
       sortable: true,
       render: (row) => row.grouping || row.part_grouping || 'Other',
     },
-    { key: 'admin_comment', label: 'Remarks', sortable: false }
   ];
 
   function handleSort(columnKey) {
@@ -467,11 +467,18 @@ export default function PartReplacementShowcase() {
                     : 'Data Table'}
                 </strong>
               </span>
-              <span className="text-[9px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-1.5 py-0.2 rounded border border-signal/30">
-                {date === 'latest'
-                  ? `Date: ${formatDate(groupingData?.activeDate || groupingData?.latestDate)}`
-                  : `Date: ${formatDate(date)}`}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-extrabold text-sky-700 dark:text-sky-300 bg-sky-500/15 px-1.5 py-0.2 rounded border border-sky-500/30">
+                  TL & FL Parts
+                </span>
+                <span className="text-[9px] font-extrabold text-signal-dark dark:text-signal bg-signal/15 px-1.5 py-0.2 rounded border border-signal/30">
+                  {date === 'latest'
+                    ? `Date: ${groupingData?.activeDate || groupingData?.latestDate
+                      ? formatDate(groupingData?.activeDate || groupingData?.latestDate)
+                      : ''}`
+                    : `Date: ${formatDate(date)}`}
+                </span>
+              </div>
               <span>
                 {autoPlay ? `Auto-switching in ${timeLeft}s` : 'Paused'}
               </span>
@@ -500,6 +507,7 @@ export default function PartReplacementShowcase() {
                 flTotal={flTotal}
                 activeDate={activeDate}
                 isCompact={isFullscreen}
+                isVisible={activeSlide === 'fl'}
               />
             </div>
           )}
@@ -516,6 +524,7 @@ export default function PartReplacementShowcase() {
                 tlTotal={tlTotal}
                 activeDate={activeDate}
                 isCompact={isFullscreen}
+                isVisible={activeSlide === 'tl'}
               />
             </div>
           )}

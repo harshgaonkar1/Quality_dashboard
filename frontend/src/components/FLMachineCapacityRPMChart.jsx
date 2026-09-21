@@ -13,6 +13,7 @@ import HighchartsReact from 'highcharts-react-official';
 import { aggregateFLModelSpecs } from '../utils/modelSpecParser';
 import { useAdmin } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext';
+import { formatDate } from '../utils/formatDate';
 
 export default function FLMachineCapacityRPMChart({ rows = [], activeDate = '', loading = false }) {
   const { isAdmin } = useAdmin();
@@ -364,7 +365,7 @@ export default function FLMachineCapacityRPMChart({ rows = [], activeDate = '', 
           <div className="flex flex-col items-center justify-center h-full py-8 text-center bg-mist-50/50 dark:bg-ink-950/40 rounded-xl border border-dashed border-mist-300 dark:border-ink-800">
             <span className="text-2xl mb-1">🔍</span>
             <p className="text-xs font-semibold text-ink-700 dark:text-mist-300">
-              No FL Machine Replacements found for {activeDate || 'the selected date'}.
+              No FL Machine Replacements found for {activeDate ? formatDate(activeDate) : 'the selected date'}.
             </p>
             <p className="text-[11px] text-ink-500 dark:text-mist-500 mt-1">
               Ensure data has been uploaded to the product_replacement table.

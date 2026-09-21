@@ -8,6 +8,30 @@
 
 const { supabase } = require('../database/supabaseClient');
 const { pool } = require('../database/connection');
+const { toMySQLDate, parseFlexibleDate } = require('../utils/dateUtils');
+
+const DATE_COLUMNS = new Set([
+  'zmac_date', 'fd_zbrn_date', 'doc', 'dop', 'doi', 'out_bound_del_date', 'spu_created_date'
+]);
+
+function normalizeToYyyyMmDd(val) {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return toMySQLDate(val);
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    const cleanDate = trimmed.split('T')[0].trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) return cleanDate;
+    const parsed = parseFlexibleDate(trimmed);
+    if (parsed && !isNaN(parsed.getTime())) {
+      return toMySQLDate(parsed);
+    }
+  }
+  return val;
+}
 
 const TABLE_CONFIG = {
   PRODUCT_REPLACEMENT: {
@@ -63,7 +87,11 @@ async function batchInsert(uploadType, records) {
       const cleanedChunk = chunk.map((record) => {
         const row = {};
         config.columns.forEach((col) => {
-          row[col] = record[col] ?? null;
+          let val = record[col] ?? null;
+          if (DATE_COLUMNS.has(col) && val) {
+            val = normalizeToYyyyMmDd(val);
+          }
+          row[col] = val;
         });
         return row;
       });
@@ -134,7 +162,13 @@ async function batchInsert(uploadType, records) {
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
       const chunk = records.slice(i, i + BATCH_SIZE);
       const valuesSql = chunk.map(() => placeholders).join(', ');
-      const flatParams = chunk.flatMap((record) => config.columns.map((col) => record[col] ?? null));
+      const flatParams = chunk.flatMap((record) => config.columns.map((col) => {
+        let val = record[col] ?? null;
+        if (DATE_COLUMNS.has(col) && val) {
+          val = normalizeToYyyyMmDd(val);
+        }
+        return val;
+      }));
 
       const conflictClause = uploadType === 'PART_REPLACEMENT' ? '' : ` ON CONFLICT (${conflictKey}) DO NOTHING`;
       const [result] = await connection.query(

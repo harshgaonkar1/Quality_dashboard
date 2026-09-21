@@ -25,8 +25,7 @@ api.interceptors.request.use((config) => {
 });
 
 // Unwraps the { success, message, data } envelope and normalizes errors
-// into a plain Error with a readable message, so calling code can just
-// `try { const data = await someService(); } catch (err) { err.message }`.
+// into an Error with readable message + attached error details and cellErrors.
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
@@ -34,7 +33,12 @@ api.interceptors.response.use(
       error.response?.data?.message ||
       error.message ||
       'An unexpected error occurred. Please try again.';
-    return Promise.reject(new Error(message));
+    const customError = new Error(message);
+    customError.response = error.response;
+    customError.data = error.response?.data;
+    customError.cellErrors = error.response?.data?.cellErrors || error.response?.data?.data?.cellErrors || null;
+    customError.details = error.response?.data?.details || null;
+    return Promise.reject(customError);
   }
 );
 

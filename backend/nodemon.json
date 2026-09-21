@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "controllers",
+    "database",
+    "middlewares",
+    "models",
+    "routes",
+    "services",
+    "utils",
+    "server.js"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "uploads/**",
+    "temp/**",
+    "*.xlsx",
+    "*.xls",
+    "*.csv",
+    "*.log",
+    "node_modules/**"
+  ]
+}

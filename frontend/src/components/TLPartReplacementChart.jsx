@@ -13,6 +13,7 @@ import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { useAdmin } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext';
+import { formatDate } from '../utils/formatDate';
 
 export default function TLPartReplacementChart({ cards = [], total = 0, tlCount = 0, activeDate = '' }) {
   const { isAdmin } = useAdmin();
@@ -31,7 +32,7 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
   // Palette matching the bright vivid scheme: 0d Bright Orange, 0-3M Bright Green, 1Y Bright Red, 2Y Bright Blue, 3Y Bright Yellow, 4Y Bright Purple, >4Y Bright Indigo
   const tlBarColors = [
     isAdmin ? '#FFA040' : '#FF7A00', // Install Failure (0d) - Bright Orange
-    isAdmin ? '#33FFA0' : '#00E676', // 0-3 Months - Bright Neon Emerald Green
+    isAdmin ? '#38BDF8' : '#38BDF8', // 0-3 Months - Bright Light Sky Blue
     isAdmin ? '#FF6B7D' : '#FF334B', // 1 Year - Bright Electric Red
     isAdmin ? '#40C8FF' : '#00B4FF', // 2 Year - Bright Electric Sky Blue
     isAdmin ? '#FFF04D' : '#FFDE00', // 3 Year - Bright Sunshine Yellow
@@ -54,9 +55,9 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
       type: 'column',
       backgroundColor: 'transparent',
       style: { fontFamily: isAdmin ? '"JetBrains Mono", monospace' : 'Inter, system-ui, sans-serif' },
-      height: 290,
+      height: 300,
       spacingTop: 8,
-      spacingBottom: 24,
+      spacingBottom: 36,
       spacingLeft: 8,
       spacingRight: 8,
       reflow: true,
@@ -66,11 +67,13 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
     xAxis: {
       categories,
       lineColor,
+      margin: 14,
       labels: {
         rotation: -25,
         align: 'right',
         reserveSpace: true,
-        y: 4,
+        y: 10,
+        padding: 6,
         style: { color: subTextColor, fontSize: '10.5px', fontWeight: '600' },
       },
     },
@@ -81,6 +84,7 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
       allowDecimals: false,
       min: 0,
       max: isZero ? 5 : undefined,
+      maxPadding: 0.12,
     },
     legend: { enabled: false },
     tooltip: {
@@ -118,6 +122,11 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
         groupPadding: 0.1,
         dataLabels: {
           enabled: !isZero,
+          inside: false,
+          verticalAlign: 'top',
+          y: -4,
+          crop: false,
+          overflow: 'none',
           style: {
             color: textColor,
             fontSize: '11px',
@@ -214,7 +223,7 @@ export default function TLPartReplacementChart({ cards = [], total = 0, tlCount 
               </span>
             </h3>
             <p className="text-xs text-ink-500 dark:text-mist-400">
-              Ageing distribution for TL washing machine parts {activeDate ? `· ${activeDate}` : ''}
+              Ageing distribution for TL washing machine parts {activeDate ? `· ${formatDate(activeDate)}` : ''}
             </p>
           </div>
         </div>

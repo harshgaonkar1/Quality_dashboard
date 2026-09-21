@@ -7,7 +7,7 @@
 
 const { supabase } = require('../database/supabaseClient');
 const { pool } = require('../database/connection');
-const { parseFlexibleDate, toMySQLDate } = require('../utils/dateUtils');
+const { parseFlexibleDate, toMySQLDate, normalizeDateFilter } = require('../utils/dateUtils');
 
 function parsePartCategoryList(categoryStr) {
   if (!categoryStr || typeof categoryStr !== 'string') return [];
@@ -48,11 +48,10 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, pro
     }
   }
 
-  if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const [y, m1, m2] = date.split('-');
-    const altDate = `${y}-${m2}-${m1}`;
-    whereClause += ' AND (DATE(spu_created_date) = ? OR DATE(spu_created_date) = ? OR (spu_created_date IS NULL AND (DATE(doc) = ? OR DATE(doc) = ?)))';
-    params.push(date, altDate, date, altDate);
+  const normalizedDate = normalizeDateFilter(date);
+  if (normalizedDate) {
+    whereClause += ' AND (DATE(spu_created_date) = ? OR DATE(doc) = ?)';
+    params.push(normalizedDate, normalizedDate);
   }
 
   if (ageingMin !== null && ageingMax !== null) {
@@ -89,32 +88,31 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
         q = q.or('sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
       } else if (cat === 'FL') {
         q = q.or('sub_category.eq.FL,sub_category.eq.FLU,sub_category.eq.Flu,model.ilike.FL%')
-             .not('sub_category', 'in', '("MW","MWO","MICROWAVE","MWU","TL","TLU","TLM")')
+             .not('sub_category', 'in', '(MW,MWO,MICROWAVE,MWU,TL,TLU,TLM)')
              .not('model', 'ilike', 'TL%')
              .not('model', 'ilike', 'MW%');
       }
     } else if (selectedCats.length === 2) {
       if (selectedCats.includes('TL') && selectedCats.includes('FL')) {
-        q = q.not('sub_category', 'in', '("MW","MWO","MICROWAVE","MWU")').not('model', 'ilike', 'MW%');
+        q = q.not('sub_category', 'in', '(MW,MWO,MICROWAVE,MWU)').not('model', 'ilike', 'MW%');
       } else if (selectedCats.includes('TL') && selectedCats.includes('MW')) {
         q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%,sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
       } else if (selectedCats.includes('FL') && selectedCats.includes('MW')) {
-        q = q.not('sub_category', 'in', '("TL","TLU","TLM")').not('model', 'ilike', 'TL%');
+        q = q.not('sub_category', 'in', '(TL,TLU,TLM)').not('model', 'ilike', 'TL%');
       }
     }
   }
 
-  if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const [y, m1, m2] = date.split('-');
-    const altDate = `${y}-${m2}-${m1}`;
-    q = q.or(`spu_created_date.eq.${date},spu_created_date.eq.${altDate},and(spu_created_date.is.null,or(doc.eq.${date},doc.eq.${altDate}))`);
+  const normalizedDate = normalizeDateFilter(date);
+  if (normalizedDate) {
+    q = q.or(`spu_created_date.eq.${normalizedDate},doc.eq.${normalizedDate}`);
   }
 
   if (ageingMin !== null && ageingMax !== null) {
     if (ageingMin === 0 && ageingMax === 0) {
       q = q.eq('ageing_days', 0);
     } else if (ageingMin === 1 && ageingMax === 90) {
-      q = q.or('and(ageing_days.gte.1,ageing_days.lte.90),ageing_days.is.null,ageing_days.lt.0');
+      q = q.or('ageing_days.lte.90,ageing_days.is.null');
     } else {
       q = q.gte('ageing_days', ageingMin).lte('ageing_days', ageingMax);
     }
@@ -413,59 +411,72 @@ async function updateComment(serialNumber, comment, ticketNo = null, complaintNu
 /**
  * Returns the latest date in part_replacement table as YYYY-MM-DD string from spu_created_date (supports YYYY-DD-MM).
  */
-async function getLatestDate() {
+async function getLatestDate({ productCategory = '', subCategory = '' } = {}) {
   if (supabase) {
     try {
-      const { data: rows, error } = await supabase
+      let q = supabase
         .from('part_replacement')
-        .select('spu_created_date')
-        .not('spu_created_date', 'is', null)
-        .order('spu_created_date', { ascending: false })
-        .limit(30);
+        .select('spu_created_date, doc');
 
-      if (!error && rows && rows.length > 0) {
-        let maxTime = -Infinity;
-        let latestStr = null;
+      const subCatFilter = subCategory || productCategory;
+      const selectedCats = parsePartCategoryList(subCatFilter);
+      if (selectedCats.length > 0 && selectedCats.length < 3) {
+        if (selectedCats.length === 1) {
+          const cat = selectedCats[0];
+          if (cat === 'TL') {
+            q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%');
+          } else if (cat === 'MW') {
+            q = q.or('sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
+          } else if (cat === 'FL') {
+            q = q.or('sub_category.eq.FL,sub_category.eq.FLU,sub_category.eq.Flu,model.ilike.FL%')
+                 .not('sub_category', 'in', '(MW,MWO,MICROWAVE,MWU,TL,TLU,TLM)')
+                 .not('model', 'ilike', 'TL%')
+                 .not('model', 'ilike', 'MW%');
+          }
+        } else if (selectedCats.length === 2) {
+          if (selectedCats.includes('TL') && selectedCats.includes('FL')) {
+            q = q.not('sub_category', 'in', '(MW,MWO,MICROWAVE,MWU)').not('model', 'ilike', 'MW%');
+          } else if (selectedCats.includes('TL') && selectedCats.includes('MW')) {
+            q = q.or('sub_category.eq.TL,sub_category.eq.TLU,sub_category.eq.TLM,model.ilike.TL%,sub_category.eq.MW,sub_category.eq.MWO,sub_category.eq.MICROWAVE,sub_category.eq.MWU,model.ilike.MW%');
+          } else if (selectedCats.includes('FL') && selectedCats.includes('MW')) {
+            q = q.not('sub_category', 'in', '(TL,TLU,TLM)').not('model', 'ilike', 'TL%');
+          }
+        }
+      }
 
-        for (const r of rows) {
-          const raw = r.spu_created_date;
-          if (raw) {
-            const parsed = parseFlexibleDate(raw, { preferYyyyDdMm: true });
-            if (parsed && !isNaN(parsed.getTime())) {
-              if (parsed.getTime() > maxTime) {
-                maxTime = parsed.getTime();
-                latestStr = toMySQLDate(parsed);
-              }
-            } else {
-              const str = String(raw).split('T')[0];
-              if (/^\d{4}-\d{2}-\d{2}$/.test(str) && !latestStr) {
+      let maxTime = -Infinity;
+      let latestStr = null;
+
+      const [res1, res2] = await Promise.all([
+        q.order('spu_created_date', { ascending: false }).limit(30),
+        supabase.from('part_replacement').select('spu_created_date, doc').order('id', { ascending: false }).limit(30),
+      ]);
+
+      const allSampleRows = [...(res1.data || []), ...(res2.data || [])];
+
+      for (const r of allSampleRows) {
+        const raw = r.spu_created_date || r.doc;
+        if (raw) {
+          const parsed = parseFlexibleDate(raw);
+          if (parsed && !isNaN(parsed.getTime())) {
+            if (parsed.getTime() > maxTime) {
+              maxTime = parsed.getTime();
+              latestStr = toMySQLDate(parsed);
+            }
+          } else {
+            const str = String(raw).split('T')[0];
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+              const t = new Date(str).getTime();
+              if (t > maxTime) {
+                maxTime = t;
                 latestStr = str;
               }
             }
           }
         }
-        if (latestStr) return latestStr;
       }
 
-      // Fallback to checking doc only if spu_created_date was null on all rows
-      const { data: fallbackRows, error: fallbackError } = await supabase
-        .from('part_replacement')
-        .select('doc')
-        .not('doc', 'is', null)
-        .order('doc', { ascending: false })
-        .limit(10);
-
-      if (!fallbackError && fallbackRows && fallbackRows.length > 0) {
-        for (const r of fallbackRows) {
-          const raw = r.doc;
-          if (raw) {
-            const parsed = parseFlexibleDate(raw);
-            if (parsed && !isNaN(parsed.getTime())) return toMySQLDate(parsed);
-            const dateStr = String(raw).split('T')[0];
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-          }
-        }
-      }
+      if (latestStr) return latestStr;
     } catch (e) {
       console.warn('⚠️ Supabase part getLatestDate notice:', e.message);
     }
@@ -473,41 +484,22 @@ async function getLatestDate() {
 
   if (pool) {
     try {
+      const { whereClause, params } = buildWhereClause({ productCategory, subCategory });
       const [rows] = await pool.query(
-        `SELECT spu_created_date
+        `SELECT DATE(COALESCE(spu_created_date, doc)) AS latest_date
          FROM part_replacement
-         WHERE spu_created_date IS NOT NULL
-         ORDER BY spu_created_date DESC
-         LIMIT 30`
+         WHERE ${whereClause}
+           AND (spu_created_date IS NOT NULL OR doc IS NOT NULL)
+         ORDER BY COALESCE(spu_created_date, doc) DESC
+         LIMIT 1`,
+        params
       );
-      if (rows && rows.length > 0) {
-        let maxTime = -Infinity;
-        let latestStr = null;
-        for (const r of rows) {
-          const raw = r.spu_created_date;
-          if (raw) {
-            const parsed = parseFlexibleDate(raw, { preferYyyyDdMm: true });
-            if (parsed && !isNaN(parsed.getTime())) {
-              if (parsed.getTime() > maxTime) {
-                maxTime = parsed.getTime();
-                latestStr = toMySQLDate(parsed);
-              }
-            }
-          }
-        }
-        if (latestStr) return latestStr;
-      }
-
-      const [fallbackRows] = await pool.query(
-        `SELECT DATE(doc) AS latest_date
-         FROM part_replacement
-         WHERE doc IS NOT NULL
-         ORDER BY doc DESC
-         LIMIT 1`
-      );
-      if (fallbackRows && fallbackRows[0] && fallbackRows[0].latest_date) {
-        const d = new Date(fallbackRows[0].latest_date);
-        return toMySQLDate(d);
+      if (rows && rows[0] && rows[0].latest_date) {
+        const d = new Date(rows[0].latest_date);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
       }
     } catch (e) {
       console.warn('⚠️ SQL part getLatestDate notice:', e.message);
@@ -902,7 +894,7 @@ async function syncPartGroupingLookup() {
  */
 async function getPartGroupingCounts({ date = '', productCategory = '', subCategory = '' } = {}) {
   let activeDate = date;
-  const latestDate = await getLatestDate();
+  const latestDate = await getLatestDate({ productCategory, subCategory });
   if (date === 'latest') {
     activeDate = latestDate || '';
   }
@@ -917,7 +909,7 @@ async function getPartGroupingCounts({ date = '', productCategory = '', subCateg
   let rows = [];
   if (supabase) {
     try {
-      let q = supabase.from('part_replacement').select('grouping, part_grouping, description, item_code, sub_category, model, ageing_days, approved_qty, raw_payload');
+      let q = supabase.from('part_replacement').select('grouping, part_grouping, description, item_code, sub_category, model, ageing_days, approved_qty, spu_created_date, doc, raw_payload');
       q = applySupabaseFilters(q, { search: '', ageingMin: null, ageingMax: null, productCategory, subCategory, date: activeDate });
       const { data, error } = await q;
       if (!error && data) {
@@ -964,9 +956,15 @@ async function getPartGroupingCounts({ date = '', productCategory = '', subCateg
     const row = enrichRowWithLookup(rawRow, lookupMap);
     const subCat = (row.sub_category || '').toUpperCase().trim();
     const model = (row.model || '').toUpperCase().trim();
-    const isTl = subCat === 'TL' || model.startsWith('TL');
 
-    const partName = String(row.grouping || row.part_grouping || 'Other Components').trim();
+    // Exclude Microwave models
+    if (subCat === 'MW' || subCat === 'MWO' || subCat === 'MICROWAVE' || model.startsWith('MW')) {
+      continue;
+    }
+
+    const isTl = subCat === 'TL' || subCat === 'TLU' || subCat === 'TLM' || model.startsWith('TL');
+
+    const partName = String(row.grouping || row.part_grouping || 'Other Components').trim() || 'Other Components';
     const groupKey = partName.toUpperCase();
 
     const targetMap = isTl ? tlMap : flMap;
@@ -991,20 +989,21 @@ async function getPartGroupingCounts({ date = '', productCategory = '', subCateg
     const entry = targetMap.get(groupKey);
     entry.count += 1;
 
-    const days = row.ageing_days;
-    if (days === 0 || days === '0') {
+    const days = rawRow.ageing_days;
+    const numDays = days !== null && days !== undefined && !isNaN(Number(days)) ? Number(days) : null;
+    if (numDays === 0) {
       entry.ageing.installFailure += 1;
-    } else if (days === null || days === undefined || (days >= 1 && days <= 90)) {
+    } else if (numDays === null || (numDays >= 1 && numDays <= 90)) {
       entry.ageing.months0_3 += 1;
-    } else if (days >= 91 && days <= 365) {
+    } else if (numDays >= 91 && numDays <= 365) {
       entry.ageing.year1 += 1;
-    } else if (days >= 366 && days <= 730) {
+    } else if (numDays >= 366 && numDays <= 730) {
       entry.ageing.year2 += 1;
-    } else if (days >= 731 && days <= 1095) {
+    } else if (numDays >= 731 && numDays <= 1095) {
       entry.ageing.year3 += 1;
-    } else if (days >= 1096 && days <= 1460) {
+    } else if (numDays >= 1096 && numDays <= 1460) {
       entry.ageing.year4 += 1;
-    } else if (days > 1460) {
+    } else if (numDays > 1460) {
       entry.ageing.moreThan4 += 1;
     }
   }

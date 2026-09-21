@@ -7,6 +7,7 @@
 
 const { supabase } = require('../database/supabaseClient');
 const { pool } = require('../database/connection');
+const { parseFlexibleDate, toMySQLDate, normalizeDateFilter } = require('../utils/dateUtils');
 
 const ALLOWED_STATUS = ['Approved', 'Approved for Upgrade'];
 const ALLOWED_MAT_CAT = ['WM', 'WD', 'MW', 'MWO'];
@@ -62,9 +63,10 @@ function buildWhereClause({ search = '', ageingMin = null, ageingMax = null, typ
     }
   }
 
-  if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    whereClause += ' AND (DATE(zmac_date) = ? OR (zmac_date IS NULL AND DATE(doc) = ?))';
-    params.push(date, date);
+  const normalizedDate = normalizeDateFilter(date);
+  if (normalizedDate) {
+    whereClause += ' AND (DATE(zmac_date) = ? OR DATE(doc) = ?)';
+    params.push(normalizedDate, normalizedDate);
   }
 
   if (ageingMin !== null && ageingMax !== null) {
@@ -120,16 +122,16 @@ function applySupabaseFilters(query, { search = '', ageingMin = null, ageingMax 
     q = q.in('mat_cat', ALLOWED_MAT_CAT);
   }
 
-  if (date && date !== 'latest' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    q = q.or(`zmac_date.eq.${date},and(zmac_date.is.null,doc.eq.${date})`);
+  const normalizedDate = normalizeDateFilter(date);
+  if (normalizedDate) {
+    q = q.or(`zmac_date.eq.${normalizedDate},doc.eq.${normalizedDate}`);
   }
-
 
   if (ageingMin !== null && ageingMax !== null) {
     if (ageingMin === 0 && ageingMax === 0) {
       q = q.eq('ageing_days', 0);
     } else if (ageingMin === 1 && ageingMax === 90) {
-      q = q.or('and(ageing_days.gte.1,ageing_days.lte.90),ageing_days.is.null,ageing_days.lt.0');
+      q = q.or('ageing_days.lte.90,ageing_days.is.null');
     } else {
       q = q.gte('ageing_days', ageingMin).lte('ageing_days', ageingMax);
     }
@@ -554,17 +556,39 @@ async function getLatestDate({ productCategory = '' } = {}) {
         q = q.in('mat_cat', ALLOWED_MAT_CAT);
       }
 
-      const { data: rows, error } = await q.order('zmac_date', { ascending: false }).limit(5);
+      let maxTime = -Infinity;
+      let latestStr = null;
 
-      if (!error && rows && rows.length > 0) {
-        for (const r of rows) {
-          const raw = r.zmac_date || r.doc;
-          if (raw) {
-            const dateStr = String(raw).split('T')[0];
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+      const [res1, res2] = await Promise.all([
+        q.order('zmac_date', { ascending: false }).limit(30),
+        supabase.from('product_replacement').select('zmac_date, doc').order('id', { ascending: false }).limit(30),
+      ]);
+
+      const allSampleRows = [...(res1.data || []), ...(res2.data || [])];
+
+      for (const r of allSampleRows) {
+        const raw = r.zmac_date || r.doc;
+        if (raw) {
+          const parsed = parseFlexibleDate(raw);
+          if (parsed && !isNaN(parsed.getTime())) {
+            if (parsed.getTime() > maxTime) {
+              maxTime = parsed.getTime();
+              latestStr = toMySQLDate(parsed);
+            }
+          } else {
+            const str = String(raw).split('T')[0];
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+              const t = new Date(str).getTime();
+              if (t > maxTime) {
+                maxTime = t;
+                latestStr = str;
+              }
+            }
           }
         }
       }
+
+      if (latestStr) return latestStr;
     } catch (e) {
       console.warn('⚠️ Supabase getLatestDate notice:', e.message);
     }

@@ -18,7 +18,7 @@ const { getAgeingCategory, getAgeingRangeByKey, AGEING_CATEGORIES } = require('.
  */
 async function getDashboardSummary({ productCategory = '', subCategory = '', date = '' } = {}) {
   let activeDate = date;
-  let latestDate = await partReplacementModel.getLatestDate();
+  let latestDate = await partReplacementModel.getLatestDate({ productCategory, subCategory });
 
   if (date === 'latest') {
     activeDate = latestDate || '';
@@ -91,8 +91,9 @@ async function getDashboardSummary({ productCategory = '', subCategory = '', dat
  */
 async function getDashboardDetails({ ageingCategory, page, pageSize, search, sortBy, sortDir, productCategory, subCategory, date }) {
   let activeDate = date;
+  let latestDate = await partReplacementModel.getLatestDate({ productCategory, subCategory });
   if (date === 'latest') {
-    activeDate = (await partReplacementModel.getLatestDate()) || '';
+    activeDate = latestDate || '';
   }
 
   let ageingMin = null;
@@ -118,7 +119,7 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
     ageing_category: getAgeingCategory(row.ageing_days)?.label || 'Unknown',
   }));
 
-  return { ...result, rows: enrichedRows, activeDate };
+  return { ...result, rows: enrichedRows, activeDate, latestDate };
 }
 
 /**
@@ -126,8 +127,9 @@ async function getDashboardDetails({ ageingCategory, page, pageSize, search, sor
  */
 async function getDetailsForExport({ ageingCategory, search, productCategory, subCategory, date }) {
   let activeDate = date;
+  let latestDate = await partReplacementModel.getLatestDate({ productCategory, subCategory });
   if (date === 'latest') {
-    activeDate = (await partReplacementModel.getLatestDate()) || '';
+    activeDate = latestDate || '';
   }
 
   let ageingMin = null;

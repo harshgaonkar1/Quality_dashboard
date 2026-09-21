@@ -2,7 +2,7 @@
 // TL Part Grouping Chart Component
 // ------------------------------------------------------------
 // Visualizes Top Load (TL) Part Replacements with Part Grouping
-// on the X-axis with Stacked Ageing Breakdown.
+// on the X-axis with 0-3 Month Ageing Breakdown.
 // Engineered for presentation / TV Showcase mode.
 // ============================================================
 
@@ -13,16 +13,16 @@ import HighchartsReact from 'highcharts-react-official';
 import { useAdmin } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext';
 
-function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', isCompact = false }) {
+function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', isCompact = false, isVisible = true }) {
   const { isAdmin } = useAdmin();
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const chartComponentRef = useRef(null);
   const containerRef = useRef(null);
 
-  // Display all part groups so bar graph counts match total replacements
-  const allGroups = useMemo(() => partGroups || [], [partGroups]);
-  const isZero = tlTotal === 0 || allGroups.length === 0;
+  // Display only top 5 part groups (highest replacement counts)
+  const allGroups = useMemo(() => (partGroups || []).slice(0, 5), [partGroups]);
+  const isZero = allGroups.length === 0;
 
   // Theme colors
   const textColor = isAdmin ? '#4ade80' : isDark ? '#F1F5F9' : '#0F172A';
@@ -32,70 +32,34 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
   const tooltipBg = isAdmin ? '#050505' : isDark ? '#0F172A' : '#FFFFFF';
   const tooltipBorder = isAdmin ? '#22c55e' : isDark ? '#334155' : '#CBD5E1';
 
-  // Ageing series colors:
-  // 0day = Bright Orange, 0-3M = Light Mint Green, 1Y = Bright Electric Red, 2Y = Bright Cyan Blue, 3Y = Bright Sunshine Yellow, 4Y = Bright Electric Violet, >4Y = Bright Royal Indigo
-  const AGEING_COLORS = {
-    installFailure: isAdmin ? '#FFA040' : '#FF7A00', // Bright Radiant Orange
-    months0_3: isAdmin ? '#86EFAC' : '#4ADE80',      // Light Mint Green
-    year1: isAdmin ? '#FF6B7D' : '#FF334B',          // Bright Electric Red
-    year2: isAdmin ? '#40C8FF' : '#00B4FF',          // Bright Electric Sky Blue
-    year3: isAdmin ? '#FFF04D' : '#FFDE00',          // Bright Sunshine Yellow
-    year4: isAdmin ? '#D166FF' : '#B845FF',          // Bright Electric Violet / Purple
-    moreThan4: isAdmin ? '#807DFF' : '#4F46E5',      // Bright Royal Indigo
-  };
+  // Ageing series color: Shade of Light Red / Rose (#FB7185)
+  const BAR_COLOR = '#FB7185';
 
   const categories = useMemo(() => allGroups.map((g) => g.partName), [allGroups]);
 
-  // Stacked Series: Breakdown by Ageing Bucket across all Part Names
-  const stackedSeries = useMemo(() => [
-    {
-      name: 'Install Failure (0d)',
-      data: allGroups.map((g) => g.ageing?.installFailure || 0),
-      color: AGEING_COLORS.installFailure,
-    },
+  // Series: Only 0-3 Months across Top 5 Part Names
+  const seriesData = useMemo(() => [
     {
       name: '0-3 Months',
-      data: allGroups.map((g) => g.ageing?.months0_3 || 0),
-      color: AGEING_COLORS.months0_3,
+      data: allGroups.map((g) => ({
+        name: g.partName,
+        y: g.count || g.ageing?.months0_3 || 0,
+        color: BAR_COLOR,
+      })),
+      color: BAR_COLOR,
     },
-    {
-      name: '1 Year',
-      data: allGroups.map((g) => g.ageing?.year1 || 0),
-      color: AGEING_COLORS.year1,
-    },
-    {
-      name: '2 Year',
-      data: allGroups.map((g) => g.ageing?.year2 || 0),
-      color: AGEING_COLORS.year2,
-    },
-    {
-      name: '3 Year',
-      data: allGroups.map((g) => g.ageing?.year3 || 0),
-      color: AGEING_COLORS.year3,
-    },
-    {
-      name: '4 Year',
-      data: allGroups.map((g) => g.ageing?.year4 || 0),
-      color: AGEING_COLORS.year4,
-    },
-    {
-      name: '> 4 Years',
-      data: allGroups.map((g) => g.ageing?.moreThan4 || 0),
-      color: AGEING_COLORS.moreThan4,
-    },
-  ], [allGroups, AGEING_COLORS]);
+  ], [allGroups]);
 
-  const stackedOptions = useMemo(() => ({
+  const chartOptions = useMemo(() => ({
     chart: {
       type: 'column',
       backgroundColor: 'transparent',
       animation: false,
       style: { fontFamily: isAdmin ? '"JetBrains Mono", monospace' : 'Inter, system-ui, sans-serif' },
-      height: null,
-      spacingTop: 6,
-      spacingBottom: 24,
-      spacingLeft: 8,
-      spacingRight: 8,
+      spacingTop: 12,
+      spacingBottom: 42,
+      spacingLeft: 12,
+      spacingRight: 12,
       reflow: true,
     },
     title: { text: null },
@@ -103,23 +67,25 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
     xAxis: {
       categories: categories.length > 0 ? categories : ['No Parts Data'],
       lineColor,
+      margin: 16,
       labels: {
-        rotation: categories.length > 6 ? -50 : -25,
+        rotation: -15,
         align: 'right',
         step: 1,
         reserveSpace: true,
-        y: 4,
-        x: -2,
+        y: 14,
+        x: -4,
+        padding: 8,
         style: {
           color: textColor,
-          fontSize: categories.length > 20 ? '9px' : categories.length > 12 ? '10px' : '11px',
-          fontWeight: '600',
+          fontSize: '11px',
+          fontWeight: '700',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
         },
         formatter: function () {
           const val = String(this.value || '');
-          const maxLen = categories.length > 15 ? 18 : 22;
+          const maxLen = 24;
           if (val.length > maxLen) {
             return val.slice(0, maxLen - 1) + '…';
           }
@@ -130,21 +96,10 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
     yAxis: {
       title: { text: null },
       gridLineColor: gridColor,
-      labels: { style: { color: subTextColor, fontSize: '10px', fontWeight: '600' } },
+      labels: { style: { color: subTextColor, fontSize: '10.5px', fontWeight: '600' } },
       allowDecimals: false,
       min: 0,
-      stackLabels: {
-        enabled: true,
-        style: {
-          fontWeight: 'bold',
-          color: textColor,
-          fontSize: '10px',
-          textOutline: 'none',
-        },
-        formatter: function () {
-          return this.total > 0 ? this.total : '';
-        },
-      },
+      maxPadding: 0.15,
     },
     legend: {
       enabled: false,
@@ -159,7 +114,7 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
       style: { color: textColor, fontSize: '11px' },
       formatter: function () {
         let s = `
-          <div style="padding: 2px 4px;">
+          <div style="padding: 3px 6px;">
             <div style="font-weight: 700; font-size: 12px; margin-bottom: 4px; color: ${textColor}">
               Part: ${this.x}
             </div>
@@ -179,7 +134,7 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
         const pct = tlTotal > 0 ? ((total / tlTotal) * 100).toFixed(1) : '0.0';
         s += `
             <div style="border-top: 1px solid ${lineColor}; margin-top: 4px; padding-top: 3px; display: flex; justify-content: space-between; gap: 14px; font-weight: 700;">
-              <span>Total TL Replacements:</span>
+              <span>Total 0-3M TL Replacements:</span>
               <span>${total.toLocaleString()} (${pct}%)</span>
             </div>
           </div>
@@ -192,72 +147,71 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
         animation: false,
       },
       column: {
-        stacking: 'normal',
         animation: false,
-        borderRadius: 4,
-        pointPadding: categories.length > 15 ? 0.05 : 0.1,
-        groupPadding: categories.length > 15 ? 0.02 : 0.05,
-        maxPointWidth: 55,
+        borderRadius: 6,
+        pointPadding: 0.12,
+        groupPadding: 0.08,
+        maxPointWidth: 65,
+        minPointLength: 4,
+        dataLabels: {
+          enabled: true,
+          inside: false,
+          verticalAlign: 'top',
+          y: -4,
+          crop: false,
+          overflow: 'none',
+          style: {
+            color: textColor,
+            fontSize: '11.5px',
+            fontWeight: '800',
+            textOutline: 'none',
+          },
+          formatter: function () {
+            return this.y > 0 ? this.y : '';
+          },
+        },
       },
     },
-    series: stackedSeries,
-  }), [categories, isAdmin, lineColor, gridColor, textColor, subTextColor, tooltipBg, tooltipBorder, tlTotal, stackedSeries]);
+    series: seriesData,
+  }), [categories, isAdmin, lineColor, gridColor, textColor, subTextColor, tooltipBg, tooltipBorder, tlTotal, seriesData]);
 
-  // Ensure responsive reflow on resize and data updates
+  // Ensure responsive reflow on resize, slide visibility change, and data updates
   useEffect(() => {
-    if (!containerRef.current) return;
     const handleReflow = () => {
       if (chartComponentRef.current?.chart) {
         chartComponentRef.current.chart.reflow();
       }
     };
 
-    handleReflow();
-    const t1 = setTimeout(handleReflow, 60);
-    const t2 = setTimeout(handleReflow, 250);
-
-    const observer = new ResizeObserver(() => {
+    if (isVisible) {
       handleReflow();
-    });
-    observer.observe(containerRef.current);
+      const t1 = setTimeout(handleReflow, 50);
+      const t2 = setTimeout(handleReflow, 200);
+      const t3 = setTimeout(handleReflow, 500);
 
-    return () => {
-      observer.disconnect();
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [allGroups, isZero]);
-
-  const ageingTotals = useMemo(() => {
-    const totals = {
-      installFailure: 0,
-      months0_3: 0,
-      year1: 0,
-      year2: 0,
-      year3: 0,
-      year4: 0,
-      moreThan4: 0,
-    };
-    (partGroups || []).forEach((g) => {
-      if (g.ageing) {
-        totals.installFailure += g.ageing.installFailure || 0;
-        totals.months0_3 += g.ageing.months0_3 || 0;
-        totals.year1 += g.ageing.year1 || 0;
-        totals.year2 += g.ageing.year2 || 0;
-        totals.year3 += g.ageing.year3 || 0;
-        totals.year4 += g.ageing.year4 || 0;
-        totals.moreThan4 += g.ageing.moreThan4 || 0;
+      let observer = null;
+      if (containerRef.current) {
+        observer = new ResizeObserver(() => {
+          handleReflow();
+        });
+        observer.observe(containerRef.current);
       }
-    });
-    return totals;
-  }, [partGroups]);
+
+      return () => {
+        if (observer) observer.disconnect();
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    }
+  }, [isVisible, allGroups, isZero]);
 
   const topPart = allGroups[0] || null;
 
   return (
-    <div className="panel p-2 lg:p-2.5 flex flex-col h-full w-full min-h-0 border-t-4 border-t-rose-500 shadow-panel relative">
+    <div className="panel p-2.5 lg:p-3 flex flex-col h-full w-full min-h-[360px] border-t-4 border-t-rose-500 shadow-panel relative">
       {/* Sleek Integrated Header & KPI Bar */}
-      <div className="flex flex-col gap-1 shrink-0 mb-1">
+      <div className="flex flex-col gap-1 shrink-0 mb-1.5">
         <div className="flex items-center justify-between gap-1.5 flex-wrap">
           {/* Title & Badge */}
           <div className="flex items-center gap-1.5">
@@ -265,7 +219,7 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
               TL
             </div>
             <h3 className="font-display text-xs lg:text-sm font-bold text-ink-950 dark:text-mist-100 flex items-center gap-1">
-              TL Part Replacement
+              TL Top 5 Part Replacements (0-3M)
             </h3>
           </div>
 
@@ -276,8 +230,8 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
               <strong className="font-display font-black text-rose-950 dark:text-rose-200">{tlTotal.toLocaleString()}</strong>
             </div>
             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-mist-100 dark:bg-ink-800/60 border border-mist-200 dark:border-ink-700/60 text-[11px]">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ink-600 dark:text-mist-400">Groups:</span>
-              <strong className="font-display font-black text-ink-950 dark:text-mist-100">{partGroups.length}</strong>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ink-600 dark:text-mist-400">Top Groups:</span>
+              <strong className="font-display font-black text-ink-950 dark:text-mist-100">{allGroups.length}</strong>
             </div>
             {topPart && (
               <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-mist-100 dark:bg-ink-800/60 border border-mist-200 dark:border-ink-700/60 text-[11px] max-w-[220px] truncate" title={`${topPart.partName} (${topPart.count})`}>
@@ -289,50 +243,24 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
           </div>
         </div>
 
-        {/* Ageing Breakdown Pills Legend */}
+        {/* Ageing Breakdown Banner - Focused 0-3 Months */}
         {!isZero && (
-          <div className="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded-md bg-mist-100/60 dark:bg-ink-900/60 border border-mist-200/80 dark:border-ink-800 text-[9px] overflow-x-auto">
-            <span className="font-bold text-ink-500 dark:text-mist-400 uppercase tracking-wider text-[8px] shrink-0">
-              Ageing:
+          <div className="flex items-center justify-between gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-[9.5px]">
+            <span className="flex items-center gap-1.5 font-bold text-rose-700 dark:text-rose-300">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+              Ageing Range: <strong className="font-black uppercase tracking-wide text-rose-600 dark:text-rose-300">0-3 Months</strong>
             </span>
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.installFailure }} />
-                0d: <strong className="font-mono">{ageingTotals.installFailure}</strong>
-              </span>
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.months0_3 }} />
-                0-3M: <strong className="font-mono">{ageingTotals.months0_3}</strong>
-              </span>
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-red-500/10 text-red-700 dark:text-red-300 border border-red-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year1 }} />
-                1Y: <strong className="font-mono">{ageingTotals.year1}</strong>
-              </span>
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year2 }} />
-                2Y: <strong className="font-mono">{ageingTotals.year2}</strong>
-              </span>
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year3 }} />
-                3Y: <strong className="font-mono">{ageingTotals.year3}</strong>
-              </span>
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.year4 }} />
-                4Y: <strong className="font-mono">{ageingTotals.year4}</strong>
-              </span>
-              <span className="flex items-center gap-0.5 px-1 py-0.1 rounded font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-400/30">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: AGEING_COLORS.moreThan4 }} />
-                &gt;4Y: <strong className="font-mono">{ageingTotals.moreThan4}</strong>
-              </span>
-            </div>
+            <span className="font-mono font-bold text-rose-800 dark:text-rose-200">
+              {tlTotal.toLocaleString()} TL Part Replacements
+            </span>
           </div>
         )}
       </div>
 
       {/* Content Canvas / Zero State */}
-      <div ref={containerRef} className="flex-1 min-h-0 w-full relative">
+      <div ref={containerRef} className="flex-1 w-full min-h-[260px] flex flex-col relative">
         {isZero ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-mist-50/60 dark:bg-ink-950/40 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/60">
+          <div className="flex flex-col items-center justify-center h-full min-h-[240px] text-center p-4 bg-mist-50/60 dark:bg-ink-950/40 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/60">
             <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-1.5 text-base">
               ⚙️
             </div>
@@ -350,14 +278,14 @@ function TLPartGroupingChart({ partGroups = [], tlTotal = 0, activeDate = '', is
             </button>
           </div>
         ) : (
-          <div className="w-full h-full absolute inset-0">
+          <div className="w-full h-full min-h-[260px] flex-1 flex flex-col">
             <HighchartsReact
               ref={chartComponentRef}
               highcharts={Highcharts}
-              options={stackedOptions}
+              options={chartOptions}
               containerProps={{
-                style: { width: '100%', height: '100%', position: 'absolute', inset: 0 },
-                className: 'w-full h-full'
+                style: { width: '100%', height: '100%', minHeight: '260px', flex: 1 },
+                className: 'w-full h-full min-h-[260px] flex-1'
               }}
             />
           </div>

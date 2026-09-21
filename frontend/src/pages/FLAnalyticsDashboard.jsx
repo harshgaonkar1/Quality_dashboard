@@ -208,7 +208,7 @@ export default function FLAnalyticsDashboard() {
             <p className="text-xs lg:text-sm font-semibold text-ink-900 dark:text-mist-100">
               Active Dataset: <span className="text-sky-600 dark:text-sky-400 font-bold">Front Load (FL)</span> uploaded for date{' '}
               <span className="font-mono font-bold bg-white/70 dark:bg-ink-900/80 px-2 py-0.5 rounded border border-mist-300 dark:border-ink-700">
-                {activeDate || 'Latest available'}
+                {activeDate ? formatDate(activeDate) : 'Latest available'}
               </span>
             </p>
             <p className="text-[11px] text-ink-500 dark:text-mist-400 mt-0.5">
@@ -282,7 +282,7 @@ export default function FLAnalyticsDashboard() {
               Drilldown Records
             </h3>
             <span className="text-xs text-ink-500 dark:text-mist-400">
-              ({tableTab === 'parts' ? filteredPartRows.length : filteredProductRows.length} entries for {activeDate || 'selected date'})
+              ({tableTab === 'parts' ? filteredPartRows.length : filteredProductRows.length} entries for {activeDate ? formatDate(activeDate) : 'selected date'})
             </span>
           </div>
 
