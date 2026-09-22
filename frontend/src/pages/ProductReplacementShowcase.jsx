@@ -228,7 +228,7 @@ export default function ProductReplacementShowcase() {
 
   // Table columns configuration
   const columns = [
-    { key: 'zmac_date', label: 'Date', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
+    // { key: 'zmac_date', label: 'Date', sortable: true, render: (row) => formatDate(row.zmac_date || row.doc) },
     { key: 'branch', label: 'Branch', sortable: true },
     { key: 'model', label: 'Machine Model', sortable: true },
     { key: 'serial_number', label: 'Serial Number', sortable: true },
