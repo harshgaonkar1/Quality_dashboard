@@ -447,27 +447,39 @@ async function getLatestDate({ productCategory = '', subCategory = '' } = {}) {
       let maxTime = -Infinity;
       let latestStr = null;
 
+      const todayIso = new Date().toISOString().split('T')[0];
+      const todayEnd = Date.now() + 24 * 60 * 60 * 1000;
+
       const [res1, res2] = await Promise.all([
-        q.order('spu_created_date', { ascending: false }).limit(30),
-        supabase.from('part_replacement').select('spu_created_date, doc').order('id', { ascending: false }).limit(30),
+        q.not('spu_created_date', 'is', null).lte('spu_created_date', todayIso).order('spu_created_date', { ascending: false, nullsFirst: false }).limit(50),
+        supabase.from('part_replacement').select('spu_created_date, doc').not('spu_created_date', 'is', null).lte('spu_created_date', todayIso).order('id', { ascending: false }).limit(50),
       ]);
 
-      const allSampleRows = [...(res1.data || []), ...(res2.data || [])];
+      let allSampleRows = [...(res1.data || []), ...(res2.data || [])];
+
+      if (allSampleRows.length === 0) {
+        const [fb1, fb2] = await Promise.all([
+          supabase.from('part_replacement').select('spu_created_date, doc').not('doc', 'is', null).lte('doc', todayIso).order('doc', { ascending: false, nullsFirst: false }).limit(50),
+          supabase.from('part_replacement').select('spu_created_date, doc').order('id', { ascending: false }).limit(50),
+        ]);
+        allSampleRows = [...(fb1.data || []), ...(fb2.data || [])];
+      }
 
       for (const r of allSampleRows) {
         const raw = r.spu_created_date || r.doc;
         if (raw) {
           const parsed = parseFlexibleDate(raw);
           if (parsed && !isNaN(parsed.getTime())) {
-            if (parsed.getTime() > maxTime) {
-              maxTime = parsed.getTime();
+            const time = parsed.getTime();
+            if (time <= todayEnd && time > maxTime) {
+              maxTime = time;
               latestStr = toMySQLDate(parsed);
             }
           } else {
             const str = String(raw).split('T')[0];
             if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
               const t = new Date(str).getTime();
-              if (t > maxTime) {
+              if (t <= todayEnd && t > maxTime) {
                 maxTime = t;
                 latestStr = str;
               }
@@ -486,16 +498,35 @@ async function getLatestDate({ productCategory = '', subCategory = '' } = {}) {
     try {
       const { whereClause, params } = buildWhereClause({ productCategory, subCategory });
       const [rows] = await pool.query(
-        `SELECT DATE(COALESCE(spu_created_date, doc)) AS latest_date
+        `SELECT DATE(spu_created_date) AS latest_date
          FROM part_replacement
          WHERE ${whereClause}
-           AND (spu_created_date IS NOT NULL OR doc IS NOT NULL)
-         ORDER BY COALESCE(spu_created_date, doc) DESC
+           AND spu_created_date IS NOT NULL
+           AND spu_created_date <= CURRENT_DATE
+         ORDER BY spu_created_date DESC
          LIMIT 1`,
         params
       );
       if (rows && rows[0] && rows[0].latest_date) {
         const d = new Date(rows[0].latest_date);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      const [fallbackRows] = await pool.query(
+        `SELECT DATE(COALESCE(spu_created_date, doc)) AS latest_date
+         FROM part_replacement
+         WHERE ${whereClause}
+           AND (spu_created_date IS NOT NULL OR doc IS NOT NULL)
+           AND COALESCE(spu_created_date, doc) <= CURRENT_DATE
+         ORDER BY COALESCE(spu_created_date, doc) DESC
+         LIMIT 1`,
+        params
+      );
+      if (fallbackRows && fallbackRows[0] && fallbackRows[0].latest_date) {
+        const d = new Date(fallbackRows[0].latest_date);
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
