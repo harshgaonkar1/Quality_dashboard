@@ -351,7 +351,7 @@ export default function FLAnalyticsDashboard() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-mist-50 dark:bg-ink-950/60 text-ink-600 dark:text-mist-400 border-b border-mist-200 dark:border-ink-800 font-semibold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="px-3 py-2.5">Date (DOC)</th>
+                    <th className="px-3 py-2.5">Date</th>
                     <th className="px-3 py-2.5">Complaint No</th>
                     <th className="px-3 py-2.5">Model</th>
                     <th className="px-3 py-2.5">Item / Part Code</th>
@@ -368,7 +368,7 @@ export default function FLAnalyticsDashboard() {
                       className="hover:bg-mist-50/80 dark:hover:bg-ink-800/30 transition-colors"
                     >
                       <td className="px-3 py-2 font-mono whitespace-nowrap text-ink-700 dark:text-mist-300">
-                        {formatDate(row.doc || row.spu_created_date)}
+                        {formatDate(row.spu_created_date || row.doc)}
                       </td>
                       <td className="px-3 py-2 font-mono font-semibold text-ink-900 dark:text-mist-100">
                         {row.complaint_number || row.ticket_no || '-'}
